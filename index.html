@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finance Pro: Permanent Storage (£)</title>
+    <title>Finance Pro: Live Balances (£)</title>
     <style>
         :root { --primary: #2c3e50; --success: #27ae60; --danger: #e74c3c; --accent: #3498db; --warning: #f39c12; }
         body { font-family: 'Segoe UI', sans-serif; max-width: 1400px; margin: 0 auto; background: #f0f2f5; padding: 20px; display: flex; flex-wrap: wrap; gap: 20px; }
@@ -23,6 +23,7 @@
         .btn-add { background: var(--primary); color: white; }
         .btn-post { background: var(--success); color: white; }
         .btn-danger { background: var(--danger); color: white; }
+        .due-item { background: #fff9e6; border: 1px solid #ffeeba; padding: 12px; border-radius: 6px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
     </style>
 </head>
 <body>
@@ -38,12 +39,17 @@
 
 <div class="main-content">
     <div class="card-panel">
-        <h2>Bank Balances</h2>
+        <h2>Live Account Balances</h2>
         <div id="accounts-display" class="stats-grid"></div>
     </div>
 
+    <div class="card-panel" style="border-left: 5px solid var(--warning);">
+        <h3>Pending: Recurring Due</h3>
+        <div id="due-now-list"></div>
+    </div>
+
     <div class="card-panel">
-        <h3>Confirmed Transactions</h3>
+        <h3>Transaction History</h3>
         <div style="max-height: 400px; overflow-y: auto;">
             <table>
                 <thead><tr><th>Date</th><th>Acc</th><th>Desc</th><th>Amt</th><th></th></tr></thead>
@@ -67,7 +73,7 @@
     <div class="card-panel" style="background: #f8f9fa; border-left: 5px solid var(--success);">
         <h3>One-Off Transaction</h3>
         <form onsubmit="addOneOff(event)">
-            <input type="text" id="one-desc" placeholder="Tesco, Shell, etc." required class="full-width">
+            <input type="text" id="one-desc" placeholder="Grocery / Fuel / Gift" required class="full-width">
             <input type="number" id="one-amt" placeholder="Amount £" step="0.01" required>
             <input type="date" id="one-date" required>
             <select id="one-acc"></select>
@@ -77,12 +83,29 @@
     </div>
 
     <div class="card-panel">
-        <h3>Manage Accounts</h3>
+        <h3>Manage Bank Accounts</h3>
         <form onsubmit="upsertAccount(event)">
             <input type="text" id="new-acc-name" placeholder="Bank Name" required>
-            <input type="number" id="new-acc-open" placeholder="Starting Bal £" step="0.01" required>
-            <button class="btn-add full-width">Set Balance</button>
+            <input type="number" id="new-acc-open" placeholder="Starting Balance £" step="0.01" required>
+            <button class="btn-add full-width">Set Opening Balance</button>
         </form>
+    </div>
+
+    <div class="card-panel">
+        <h3>Recurring Templates</h3>
+        <form onsubmit="addTemplate(event)">
+            <input type="text" id="rec-desc" placeholder="Salary/Rent" required class="full-width">
+            <input type="number" id="rec-amt" placeholder="Amount £" step="0.01" required>
+            <input type="date" id="rec-start" required>
+            <select id="rec-freq">
+                <option value="7">Weekly</option>
+                <option value="30">Monthly</option>
+            </select>
+            <select id="rec-acc"></select>
+            <select id="rec-cat" class="full-width"></select>
+            <button class="btn-add full-width">Save Template</button>
+        </form>
+        <div id="template-list"></div>
     </div>
 
     <div class="card-panel">
@@ -92,24 +115,23 @@
 </div>
 
 <script>
-    // THE STORAGE KEY - Changed to a permanent name
     const STORAGE_KEY = 'FinanceData_Final';
 
     // 1. DATA INITIALIZATION
     let data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
         config: { pin: "1234", recoveryKey: "RECOVER-" + Math.random().toString(36).substr(2, 9).toUpperCase() },
         accounts: { "Main Bank": 0 },
-        categories: { inc: ["Salary"], exp: ["Rent", "Food", "Bills"] },
+        categories: { inc: ["Salary", "Other Income"], exp: ["Rent", "Food", "Bills", "Shopping"] },
         txs: [],
         templates: [] 
     };
 
     function sync() { 
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); 
-        console.log("Data saved to browser storage.");
         render(); 
     }
 
+    // 2. SECURITY
     function unlock() { 
         const entry = document.getElementById('pin-entry').value;
         if(entry === data.config.pin || entry === data.config.recoveryKey) { 
@@ -117,7 +139,7 @@
             document.getElementById('lock-screen').style.display = 'none'; 
             render(); 
         } else {
-            alert("Incorrect. Try 1234 or your Recovery Key.");
+            alert("Incorrect PIN.");
         }
     }
 
@@ -135,67 +157,36 @@
         }
     }
 
+    // 3. TRANSACTION LOGIC
     function addOneOff(e) {
         e.preventDefault();
+        const cat = document.getElementById('one-cat').value;
+        const amt = parseFloat(document.getElementById('one-amt').value);
+        const type = data.categories.inc.includes(cat) ? 'inc' : 'exp';
+
         data.txs.push({
             id: Date.now(),
             date: document.getElementById('one-date').value,
             acc: document.getElementById('one-acc').value,
             desc: document.getElementById('one-desc').value,
-            amt: parseFloat(document.getElementById('one-amt').value),
-            cat: document.getElementById('one-cat').value,
-            type: data.categories.inc.includes(document.getElementById('one-cat').value) ? 'inc' : 'exp'
+            amt: amt,
+            cat: cat,
+            type: type
         });
+        
         e.target.reset(); 
         document.getElementById('one-date').valueAsDate = new Date();
         sync();
     }
 
-    function upsertAccount(e) {
-        e.preventDefault();
-        data.accounts[document.getElementById('new-acc-name').value] = parseFloat(document.getElementById('new-acc-open').value);
-        e.target.reset(); 
-        sync();
-    }
-
-    function render() {
-        if(sessionStorage.getItem('auth') !== 'ok') return;
-        const accs = Object.keys(data.accounts);
-        const cats = [...data.categories.inc, ...data.categories.exp];
-
-        document.getElementById('recovery-key-text').innerText = data.config.recoveryKey;
-        document.getElementById('one-acc').innerHTML = accs.map(a => `<option value="${a}">${a}</option>`).join('');
-        document.getElementById('one-cat').innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
-
-        const accDisplay = document.getElementById('accounts-display');
-        accDisplay.innerHTML = '';
-        accs.forEach(name => {
-            const txTotal = data.txs.filter(t => t.acc === name).reduce((s, t) => s + (t.type === 'inc' ? t.amt : -t.amt), 0);
-            accDisplay.innerHTML += `<div class="stat-card" style="background:var(--accent)">${name}<br><strong>£${(data.accounts[name] + txTotal).toFixed(2)}</strong></div>`;
-        });
-
-        const list = document.getElementById('tx-list');
-        list.innerHTML = '';
-        data.txs.sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 15).forEach(t => {
-            const row = list.insertRow();
-            row.innerHTML = `<td>${t.date}</td><td>${t.acc}</td><td>${t.desc}</td>
-                             <td style="color:${t.type==='inc'?'green':'red'}">£${t.amt.toFixed(2)}</td>
-                             <td><button onclick="data.txs=data.txs.filter(x=>x.id!==${t.id}); sync();" style="color:red; background:none;">&times;</button></td>`;
-        });
-    }
-
-    function exportCSV() {
-        let csv = "Date,Account,Description,Category,Amount,Type\n" + data.txs.map(t => `${t.date},${t.acc},${t.desc},${t.cat},${t.amt},${t.type}`).join("\n");
-        window.open('data:text/csv;charset=utf-8,' + encodeURI(csv));
-    }
-
-    window.onload = function() {
-        if(sessionStorage.getItem('auth') === 'ok') {
-            document.getElementById('lock-screen').style.display = 'none';
-            render();
-        }
-        document.getElementById('one-date').valueAsDate = new Date();
-    };
-</script>
-</body>
-</html>
+    function postRecurring(templateId, dateStr) {
+        const temp = data.templates.find(t => t.id === templateId);
+        if (temp) {
+            data.txs.push({
+                id: Date.now() + Math.random(),
+                date: dateStr,
+                acc: temp.acc,
+                desc: temp.desc,
+                amt: temp.amt,
+                cat: temp.cat,
+                type: data.categories.inc.includes(temp.cat) ? 'inc' : 'exp'

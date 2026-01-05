@@ -2,19 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>FinanceVault: Secure Edition</title>
+    <title>FinanceVault: Build v35</title>
     <style>
-        :root { --primary: #2c3e50; --success: #27ae60; --danger: #e74c3c; --accent: #3498db; }
+        :root { --primary: #2c3e50; --success: #27ae60; --danger: #e74c3c; --accent: #3498db; --warning: #f39c12; }
         body { font-family: system-ui, sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
-        
-        /* LOCK SCREEN STYLE */
-        #lock-screen { position: fixed; inset: 0; background: var(--primary); color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; }
-        .pin-box { background: white; padding: 30px; border-radius: 15px; display: flex; flex-direction: column; gap: 15px; width: 300px; }
-        
-        /* APP STYLE */
-        nav { background: var(--primary); color: white; padding: 15px; display: flex; gap: 20px; }
+        nav { background: var(--primary); color: white; padding: 15px; display: flex; gap: 20px; align-items: center; }
         .nav-btn { cursor: pointer; font-weight: bold; padding: 10px 15px; background: rgba(255,255,255,0.1); border-radius: 6px; border: none; color: white; }
-        .container { padding: 20px; max-width: 1000px; margin: 0 auto; }
+        .container { padding: 20px; max-width: 1100px; margin: 0 auto; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
         .page { display: none; }
         .page.active { display: block; }
@@ -22,194 +16,224 @@
         .bal-card { background: var(--accent); color: white; padding: 20px; border-radius: 10px; min-width: 150px; text-align: center; }
         input, select, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box; font-size: 16px; }
         .btn-main { background: var(--success); color: white; border: none; font-weight: bold; cursor: pointer; }
+        .due-banner { background: #fff3cd; border: 1px solid #ffeeba; padding: 15px; border-radius: 8px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
         table { width: 100%; border-collapse: collapse; }
         th, td { text-align: left; padding: 12px; border-bottom: 1px solid #eee; }
     </style>
 </head>
 <body>
 
-<div id="lock-screen">
-    <h2 style="margin-bottom: 20px;">FinanceVault Locked</h2>
-    <div class="pin-box">
-        <input type="password" id="pin-entry" placeholder="Enter PIN" style="text-align: center; font-size: 24px; color: #333;">
-        <button id="btn-unlock" class="btn-main">Unlock System</button>
-        <p id="lock-msg" style="color: red; text-align: center; font-size: 14px;"></p>
-    </div>
-</div>
+<nav>
+    <div style="font-weight: bold; font-size: 1.2em; margin-right: 10px;">FinanceVault</div>
+    <button onclick="showPage('dash')" class="nav-btn">Dashboard</button>
+    <button onclick="showPage('sett')" class="nav-btn">Account Settings</button>
+</nav>
 
-<div id="app-content" style="display: none;">
-    <nav>
-        <button id="nav-dash" class="nav-btn">Dashboard</button>
-        <button id="nav-sett" class="nav-btn">Account Settings</button>
-    </nav>
-
-    <div class="container">
-        <div id="p-dash" class="page active">
-            <div class="card">
-                <h3>Bank Balances</h3>
-                <div id="render-bal" class="bal-grid"></div>
-            </div>
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+<div class="container">
+    <div id="p-dash" class="page active">
+        <div id="alerts"></div>
+        <div class="card">
+            <h3>Bank Balances</h3>
+            <div id="render-bal" class="bal-grid"></div>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
+            <div>
                 <div class="card">
                     <h3>Record Payment</h3>
-                    <input type="text" id="tx-desc" placeholder="Description">
-                    <input type="number" id="tx-amt" placeholder="Amount £" step="0.01">
-                    <select id="tx-acc-drop"></select>
-                    <select id="tx-cat-drop"></select>
-                    <input type="date" id="tx-date">
-                    <button id="btn-tx-submit" class="btn-main">Post Transaction</button>
+                    <form onsubmit="handleTx(event)">
+                        <input type="text" id="tx-desc" placeholder="Description" required>
+                        <input type="number" id="tx-amt" placeholder="Amount £" step="0.01" required>
+                        <select id="tx-acc-drop"></select>
+                        <select id="tx-cat-drop"></select>
+                        <input type="date" id="tx-date">
+                        <button type="submit" class="btn-main">Post Transaction</button>
+                    </form>
                 </div>
                 <div class="card">
-                    <h3>Add Bank Account</h3>
-                    <input type="text" id="acc-name-in" placeholder="Bank Name">
-                    <input type="number" id="acc-bal-in" placeholder="Balance £" step="0.01">
-                    <button id="btn-acc-submit" class="btn-main" style="background: var(--primary);">Create Account</button>
+                    <h3>Recent History</h3>
+                    <table id="hist-table">
+                        <thead><tr><th>Date</th><th>Desc</th><th>Amt</th><th>Acc</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
                 </div>
             </div>
-
-            <div class="card">
-                <h3>History</h3>
-                <table id="hist-table">
-                    <thead><tr><th>Date</th><th>Desc</th><th>Amt</th><th>Acc</th></tr></thead>
-                    <tbody></tbody>
-                </table>
+            <div>
+                <div class="card" style="border-top: 4px solid var(--warning);">
+                    <h3>Add Recurring</h3>
+                    <form onsubmit="handleTpl(event)">
+                        <input type="text" id="tpl-desc" placeholder="Rent/Netflix" required>
+                        <input type="number" id="tpl-amt" placeholder="£" step="0.01" required>
+                        <select id="tpl-acc-drop"></select>
+                        <select id="tpl-cat-drop"></select>
+                        <input type="date" id="tpl-date" required>
+                        <button type="submit" style="background: var(--warning); color: white; border:none; font-weight:bold;">Save Recurring</button>
+                    </form>
+                </div>
+                <div class="card">
+                    <h3>New Bank Account</h3>
+                    <form onsubmit="handleAcc(event)">
+                        <input type="text" id="acc-name-in" placeholder="Bank Name" required>
+                        <input type="number" id="acc-bal-in" placeholder="Balance £" step="0.01" required>
+                        <button type="submit" style="background: var(--primary); color:white; border:none; font-weight:bold;">Create Account</button>
+                    </form>
+                </div>
             </div>
         </div>
+    </div>
 
-        <div id="p-sett" class="page">
-            <div class="card">
-                <h3>PIN Management</h3>
-                <p style="font-size: 14px; color: #666;">Set a new code to secure your account.</p>
-                <input type="password" id="new-pin" placeholder="Enter New PIN Code">
-                <button id="btn-pin-submit" class="btn-main">Update PIN</button>
-            </div>
-            <div class="card">
-                <h3>Categories</h3>
-                <table id="cat-table">
-                    <thead><tr><th>Name</th><th>Type</th><th>Action</th></tr></thead>
-                    <tbody></tbody>
-                </table>
-                <hr>
-                <input type="text" id="new-cat-name" placeholder="Category Name">
+    <div id="p-sett" class="page">
+        <div class="card">
+            <h3>Active Recurring Payments</h3>
+            <table id="tpl-table">
+                <thead><tr><th>Description</th><th>Amount</th><th>Next Date</th><th>Action</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h3>Category Manager</h3>
+            <table id="cat-table">
+                <thead><tr><th>Name</th><th>Type</th><th>Action</th></tr></thead>
+                <tbody></tbody>
+            </table>
+            <hr>
+            <h4>Add New Category</h4>
+            <form onsubmit="handleCat(event)">
+                <input type="text" id="new-cat-name" placeholder="Category Name" required>
                 <select id="new-cat-type">
                     <option value="exp">Expense (-)</option>
                     <option value="inc">Income (+)</option>
                 </select>
-                <button id="btn-cat-submit" class="btn-main">Add Category</button>
-            </div>
-            <button id="btn-wipe" style="background:var(--danger); color:white; border:none; padding:15px; cursor:pointer; border-radius:8px;">NUCLEAR RESET</button>
+                <button type="submit" class="btn-main">Add Category</button>
+            </form>
         </div>
+
+        <div class="card">
+            <h3>Security</h3>
+            <input type="password" id="new-pin" placeholder="Set New PIN Code (Inactive for now)">
+            <button onclick="handlePin()">Update PIN</button>
+        </div>
+        <button onclick="if(confirm('Wipe all?')){localStorage.clear();location.reload();}" style="background:var(--danger); color:white; border:none; padding:15px; cursor:pointer; border-radius:8px;">NUCLEAR RESET</button>
     </div>
 </div>
 
 <script>
-    const STORAGE_KEY = 'FINANCE_STABLE_V30';
+    const STORAGE_KEY = 'FINANCE_STABLE_V35';
 
     let state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
         accounts: [],
         txs: [],
+        templates: [],
         categories: [{name: "Salary", type: "inc"}, {name: "Rent", type: "exp"}],
         pin: "1234"
     };
 
-    function saveAndRefresh() {
+    function save() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
         render();
     }
 
-    function render() {
-        // Balances
-        const balBox = document.getElementById('render-bal');
-        balBox.innerHTML = state.accounts.length === 0 ? "<em>Add a bank account to see balances.</em>" : "";
-        state.accounts.forEach(acc => {
-            const net = state.txs.filter(t => t.acc === acc.name).reduce((s, t) => s + (t.type === 'inc' ? t.amt : -t.amt), 0);
-            balBox.innerHTML += `<div class="bal-card">${acc.name}<br><strong>£${(acc.initial + net).toFixed(2)}</strong></div>`;
+    function showPage(p) {
+        document.querySelectorAll('.page').forEach(pg => pg.classList.remove('active'));
+        document.getElementById('p-' + p).classList.add('active');
+        render();
+    }
+
+    // FORM HANDLERS
+    function handleAcc(e) {
+        e.preventDefault();
+        state.accounts.push({ name: document.getElementById('acc-name-in').value, initial: parseFloat(document.getElementById('acc-bal-in').value) });
+        e.target.reset(); save();
+    }
+
+    function handleCat(e) {
+        e.preventDefault();
+        state.categories.push({ name: document.getElementById('new-cat-name').value, type: document.getElementById('new-cat-type').value });
+        e.target.reset(); save();
+    }
+
+    function handleTx(e) {
+        e.preventDefault();
+        const cat = state.categories.find(c => c.name === document.getElementById('tx-cat-drop').value);
+        state.txs.push({
+            id: Date.now(),
+            desc: document.getElementById('tx-desc').value,
+            amt: parseFloat(document.getElementById('tx-amt').value),
+            acc: document.getElementById('tx-acc-drop').value,
+            date: document.getElementById('tx-date').value,
+            type: cat ? cat.type : 'exp'
         });
+        e.target.reset(); document.getElementById('tx-date').valueAsDate = new Date(); save();
+    }
+
+    function handleTpl(e) {
+        e.preventDefault();
+        state.templates.push({
+            id: Date.now(),
+            desc: document.getElementById('tpl-desc').value,
+            amt: parseFloat(document.getElementById('tpl-amt').value),
+            acc: document.getElementById('tpl-acc-drop').value,
+            cat: document.getElementById('tpl-cat-drop').value,
+            nextDate: document.getElementById('tpl-date').value
+        });
+        e.target.reset(); save();
+    }
+
+    function postTpl(id) {
+        const t = state.templates.find(x => x.id === id);
+        const cat = state.categories.find(c => c.name === t.cat);
+        state.txs.push({ id: Date.now(), desc: t.desc, amt: t.amt, acc: t.acc, date: t.nextDate, type: cat ? cat.type : 'exp' });
+        let d = new Date(t.nextDate);
+        d.setMonth(d.getMonth() + 1);
+        t.nextDate = d.toISOString().split('T')[0];
+        save();
+    }
+
+    function handlePin() {
+        state.pin = document.getElementById('new-pin').value;
+        save(); alert("PIN updated (Lock screen is currently disabled)");
+    }
+
+    // RENDER ENGINE
+    function render() {
+        const today = new Date().toISOString().split('T')[0];
+        
+        // Balances
+        document.getElementById('render-bal').innerHTML = state.accounts.map(acc => {
+            const net = state.txs.filter(t => t.acc === acc.name).reduce((s, t) => s + (t.type === 'inc' ? t.amt : -t.amt), 0);
+            return `<div class="bal-card">${acc.name}<br><strong>£${(acc.initial + net).toFixed(2)}</strong></div>`;
+        }).join('') || "No accounts.";
 
         // Dropdowns
-        document.getElementById('tx-acc-drop').innerHTML = state.accounts.map(a => `<option value="${a.name}">${a.name}</option>`).join('');
-        document.getElementById('tx-cat-drop').innerHTML = state.categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+        const aHtml = state.accounts.map(a => `<option value="${a.name}">${a.name}</option>`).join('');
+        const cHtml = state.categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+        ['tx-acc-drop', 'tpl-acc-drop'].forEach(id => document.getElementById(id).innerHTML = aHtml);
+        ['tx-cat-drop', 'tpl-cat-drop'].forEach(id => document.getElementById(id).innerHTML = cHtml);
 
-        // Tables
+        // History
         document.querySelector('#hist-table tbody').innerHTML = state.txs.slice().reverse().slice(0, 5).map(t => `
             <tr><td>${t.date}</td><td>${t.desc}</td><td style="color:${t.type==='inc'?'green':'red'}">£${t.amt.toFixed(2)}</td><td>${t.acc}</td></tr>
         `).join('');
 
+        // Cat & Tpl Tables
         document.querySelector('#cat-table tbody').innerHTML = state.categories.map((c, i) => `
-            <tr><td>${c.name}</td><td>${c.type}</td><td><button class="del-btn" data-index="${i}" style="color:red; cursor:pointer; background:none; border:none;">&times; Delete</button></td></tr>
+            <tr><td>${c.name}</td><td>${c.type}</td><td><button onclick="state.categories.splice(${i},1);save()" style="color:red; background:none; border:none; cursor:pointer;">&times; Delete</button></td></tr>
+        `).join('');
+        document.querySelector('#tpl-table tbody').innerHTML = state.templates.map((t, i) => `
+            <tr><td>${t.desc}</td><td>£${t.amt.toFixed(2)}</td><td>${t.nextDate}</td><td><button onclick="state.templates.splice(${i},1);save()" style="color:red; background:none; border:none; cursor:pointer;">&times; Stop</button></td></tr>
         `).join('');
 
-        document.querySelectorAll('.del-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                state.categories.splice(e.target.getAttribute('data-index'), 1);
-                saveAndRefresh();
-            });
-        });
+        // Recurring Alerts
+        document.getElementById('alerts').innerHTML = state.templates.filter(t => t.nextDate <= today).map(t => `
+            <div class="due-banner"><span><strong>Due:</strong> ${t.desc} (£${t.amt})</span><button onclick="postTpl(${t.id})" class="btn-main" style="width:100px;">Post</button></div>
+        `).join('');
     }
 
-    // EVENT LISTENERS
-    document.addEventListener('DOMContentLoaded', () => {
-        // Unlock Logic
-        document.getElementById('btn-unlock').addEventListener('click', () => {
-            const val = document.getElementById('pin-entry').value;
-            if (val === state.pin) {
-                document.getElementById('lock-screen').style.display = 'none';
-                document.getElementById('app-content').style.display = 'block';
-                render();
-            } else {
-                document.getElementById('lock-msg').innerText = "Incorrect PIN. Try again.";
-                document.getElementById('pin-entry').value = "";
-            }
-        });
-
-        // Nav
-        document.getElementById('nav-dash').addEventListener('click', () => {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.getElementById('p-dash').classList.add('active');
-        });
-        document.getElementById('nav-sett').addEventListener('click', () => {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.getElementById('p-sett').classList.add('active');
-        });
-
-        // Actions
-        document.getElementById('btn-acc-submit').addEventListener('click', () => {
-            const name = document.getElementById('acc-name-in').value;
-            const bal = parseFloat(document.getElementById('acc-bal-in').value);
-            if (name && !isNaN(bal)) {
-                state.accounts.push({ name, initial: bal });
-                document.getElementById('acc-name-in').value = ""; document.getElementById('acc-bal-in').value = "";
-                saveAndRefresh();
-            }
-        });
-
-        document.getElementById('btn-tx-submit').addEventListener('click', () => {
-            const desc = document.getElementById('tx-desc').value;
-            const amt = parseFloat(document.getElementById('tx-amt').value);
-            const acc = document.getElementById('tx-acc-drop').value;
-            const cat = state.categories.find(c => c.name === document.getElementById('tx-cat-drop').value);
-            if (desc && !isNaN(amt)) {
-                state.txs.push({ id: Date.now(), desc, amt, acc, date: document.getElementById('tx-date').value, type: cat ? cat.type : 'exp' });
-                document.getElementById('tx-desc').value = ""; document.getElementById('tx-amt').value = "";
-                saveAndRefresh();
-            }
-        });
-
-        document.getElementById('btn-pin-submit').addEventListener('click', () => {
-            const val = document.getElementById('new-pin').value;
-            if (val) {
-                state.pin = val;
-                saveAndRefresh();
-                alert("New PIN saved! Use this code next time you open the app.");
-                document.getElementById('new-pin').value = "";
-            }
-        });
-
-        document.getElementById('btn-wipe').addEventListener('click', () => { if(confirm("Wipe all?")) { localStorage.clear(); location.reload(); } });
-
+    window.onload = () => {
         document.getElementById('tx-date').valueAsDate = new Date();
-    });
+        render();
+    };
 </script>
 </body>
 </html>

@@ -2,21 +2,18 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>FinanceVault: v110 Ledger & One-Offs</title>
+    <title>FinanceVault: v115 Hardware-Grade</title>
     <style>
         body { font-family: sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
         .nav { background: #2c3e50; padding: 10px; display: flex; gap: 10px; }
         .n-btn { color: white; background: #34495e; border: none; padding: 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
         .page { display: none; padding: 20px; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; max-width: 900px; margin-left: auto; margin-right: auto; }
-        .bal-card { background: #3498db; color: white; padding: 15px; border-radius: 6px; display: inline-block; margin: 5px; border: none; font-weight: bold; min-width: 120px; cursor: pointer; }
-        input, select, button { width: 100%; padding: 10px; margin: 5px 0; box-sizing: border-box; font-size: 16px; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; max-width: 800px; margin-left: auto; margin-right: auto; }
+        .bal-card { background: #3498db; color: white; padding: 15px; border-radius: 6px; display: inline-block; margin: 5px; font-weight: bold; min-width: 120px; text-align: center; }
+        input, select, button { width: 100%; padding: 12px; margin: 5px 0; box-sizing: border-box; }
         .btn-grn { background: #27ae60; color: white; border: none; font-weight: bold; cursor: pointer; }
-        .btn-del { background: #e74c3c; color: white; border: none; padding: 5px; cursor: pointer; width: auto; font-size: 12px; border-radius: 3px; }
         table { width: 100%; border-collapse: collapse; }
-        th, td { border-bottom: 1px solid #ddd; padding: 10px; text-align: left; }
-        .pos { color: #27ae60; font-weight: bold; }
-        .neg { color: #e74c3c; font-weight: bold; }
+        td, th { border-bottom: 1px solid #ddd; padding: 10px; text-align: left; }
     </style>
 </head>
 <body>
@@ -33,46 +30,30 @@
         <h3>Bank Balances</h3>
         <div id="out-bal"></div>
     </div>
-
-    <div style="display: flex; gap: 20px; flex-wrap: wrap; max-width: 940px; margin: 0 auto;">
-        <div class="card" style="flex: 1; min-width: 300px;">
-            <h3>Post Transaction</h3>
-            <input type="date" id="tx_dt">
-            <input type="text" id="tx_desc" placeholder="e.g. Coffee / Lunch">
-            <input type="number" id="tx_amt" placeholder="£ Amount">
-            <select id="tx_bnk"></select>
-            <select id="tx_cat"></select>
-            <button class="btn-grn" onclick="addTx()">Post Payment</button>
-        </div>
-        <div class="card" style="flex: 1; min-width: 300px;">
-            <h3>Add Bank Account</h3>
-            <input type="text" id="bn" placeholder="e.g. Barclays Savings">
-            <input type="number" id="ba" placeholder="Current Balance £">
-            <button class="btn-grn" onclick="addB()" style="background:#2c3e50">Create Bank</button>
-        </div>
-    </div>
-
     <div class="card">
-        <h3>Account Ledger</h3>
-        <select id="sel-b" onchange="draw()"></select>
-        <table>
-            <thead><tr><th>Date</th><th>Description</th><th>Amount</th><th>Running</th></tr></thead>
-            <tbody id="out-his"></tbody>
-        </table>
+        <h3>Post Transaction</h3>
+        <input type="text" id="tx_d" placeholder="Description">
+        <input type="number" id="tx_a" placeholder="Amount £">
+        <select id="tx_b"></select>
+        <select id="tx_c"></select>
+        <button class="btn-grn" onclick="addTx()">Post Payment</button>
+    </div>
+    <div class="card">
+        <h3>New Bank Account</h3>
+        <input type="text" id="bn" placeholder="Bank Name">
+        <input type="number" id="ba" placeholder="Opening Balance £">
+        <button class="btn-grn" onclick="addB()" style="background:#2c3e50">Create Bank</button>
     </div>
 </div>
 
 <div id="p2" class="page">
     <div class="card">
-        <h3>Add Recurring Payment</h3>
+        <h3>Recurring Templates</h3>
         <input type="text" id="rd" placeholder="Netflix">
         <input type="number" id="ra" placeholder="£">
-        <select id="rb"></select>
-        <select id="rc"></select>
-        <input type="date" id="r_date">
         <button class="btn-grn" onclick="addR()">Save Recurring</button>
     </div>
-    <div class="card"><table id="tbl-r"><thead><tr><th>Name</th><th>£</th><th>Action</th></tr></thead><tbody id="out-rec"></tbody></table></div>
+    <div class="card"><table id="tbl-r"><thead><tr><th>Name</th><th>£</th></tr></thead><tbody id="out-rec"></tbody></table></div>
 </div>
 
 <div id="p3" class="page">
@@ -80,108 +61,118 @@
         <h3>Categories</h3>
         <input type="text" id="cn" placeholder="Name">
         <select id="ct"><option value="exp">Expense</option><option value="inc">Income</option></select>
-        <button class="btn-grn" onclick="addC()">Save Category</button>
+        <button class="btn-grn" onclick="addC()">Add Category</button>
     </div>
-    <div class="card"><table id="tbl-c"><thead><tr><th>Name</th><th>Type</th><th>Action</th></tr></thead><tbody id="out-cat"></tbody></table></div>
+    <div class="card"><table id="tbl-c"><thead><tr><th>Name</th><th>Type</th></tr></thead><tbody id="out-cat"></tbody></table></div>
 </div>
 
 <div id="p4" class="page">
     <div class="card">
-        <h3>Security</h3>
+        <h3>Settings</h3>
         <input type="password" id="pn" placeholder="New PIN">
         <button class="btn-grn" onclick="upP()">Update PIN</button>
     </div>
-    <button onclick="localStorage.clear();location.reload();" style="color:red;padding:10px;">RESET DATA</button>
+    <button onclick="localStorage.clear();location.reload();" style="color:red; margin-top:20px;">RESET ALL</button>
 </div>
 
 <script>
-    var KEY = 'FV_V110_STABLE';
-    var db = { banks: [], cats: [{n:"Salary", t:"inc"}, {n:"Rent", t:"exp"}], recs: [], txs: [], pin: "1234" };
+    var KEY = 'FV_V115_FINAL';
+    var db = { banks: [], cats: [{n:"Salary", t:"inc"}, {n:"Rent", t:"exp"}], recs: [], pin: "1234" };
 
     var saved = localStorage.getItem(KEY);
-    if (saved) { db = JSON.parse(saved); }
-
-    function sync() {
-        localStorage.setItem(KEY, JSON.stringify(db));
-        draw();
-    }
+    if(saved) { db = JSON.parse(saved); }
 
     function sh(id) {
-        var ps = ['p1','p2','p3','p4'];
-        for(var i=0; i<ps.length; i++) { document.getElementById(ps[i]).style.display = 'none'; }
+        document.getElementById('p1').style.display = 'none';
+        document.getElementById('p2').style.display = 'none';
+        document.getElementById('p3').style.display = 'none';
+        document.getElementById('p4').style.display = 'none';
         document.getElementById(id).style.display = 'block';
-        draw();
+        dr();
     }
 
     function addB() {
         var n = document.getElementById('bn').value;
         var a = parseFloat(document.getElementById('ba').value);
-        if(n && !isNaN(a)) { db.banks.push({n: n, i: a}); sync(); }
+        if(n && !isNaN(a)) {
+            db.banks.push({n: n, cur: a});
+            document.getElementById('bn').value = "";
+            document.getElementById('ba').value = "";
+            sv();
+        }
+    }
+
+    function addTx() {
+        var d = document.getElementById('tx_d').value;
+        var a = parseFloat(document.getElementById('tx_a').value);
+        var bN = document.getElementById('tx_b').value;
+        var cN = document.getElementById('tx_c').value;
+        
+        if(d && !isNaN(a) && bN) {
+            // Update the bank balance directly right here
+            for(var i=0; i<db.banks.length; i++) {
+                if(db.banks[i].n == bN) {
+                    // Check category type
+                    var type = 'exp';
+                    for(var j=0; j<db.cats.length; j++) {
+                        if(db.cats[j].n == cN) type = db.cats[j].t;
+                    }
+                    if(type == 'inc') db.banks[i].cur += a;
+                    else db.banks[i].cur -= a;
+                }
+            }
+            document.getElementById('tx_d').value = "";
+            document.getElementById('tx_a').value = "";
+            sv();
+        }
     }
 
     function addC() {
         var n = document.getElementById('cn').value;
         var t = document.getElementById('ct').value;
-        if(n) { db.cats.push({n: n, t: t}); sync(); }
+        if(n) { db.cats.push({n:n, t:t}); sv(); }
     }
 
     function addR() {
         var d = document.getElementById('rd').value;
         var a = parseFloat(document.getElementById('ra').value);
-        var b = document.getElementById('rb').value;
-        var c = document.getElementById('rc').value;
-        if(d && !isNaN(a)) { db.recs.push({d: d, a: a, b: b, c: c}); sync(); }
+        if(d && !isNaN(a)) { db.recs.push({d:d, a:a}); sv(); }
     }
 
-    function addTx() {
-        var d = document.getElementById('tx_desc').value;
-        var a = parseFloat(document.getElementById('tx_amt').value);
-        var b = document.getElementById('tx_bnk').value;
-        var cN = document.getElementById('tx_cat').value;
-        var dt = document.getElementById('tx_dt').value;
-        if(d && !isNaN(a) && b) {
-            var cat = null;
-            for(var i=0; i<db.cats.length; i++) { if(db.cats[i].n == cN) cat = db.cats[i]; }
-            db.txs.push({d: d, a: a, b: b, c: cN, dt: dt, t: cat?cat.t:'exp'});
-            document.getElementById('tx_desc').value = "";
-            document.getElementById('tx_amt').value = "";
-            sync();
+    function upP() { db.pin = document.getElementById('pn').value; sv(); alert("PIN Saved"); }
+
+    function sv() { localStorage.setItem(KEY, JSON.stringify(db)); dr(); }
+
+    function dr() {
+        // Draw Bank Cards
+        var bH = "";
+        var bO = "";
+        for(var i=0; i<db.banks.length; i++) {
+            bH += '<div class="bal-card">' + db.banks[i].n + '<br>£' + db.banks[i].cur.toFixed(2) + '</div>';
+            bO += '<option value="' + db.banks[i].n + '">' + db.banks[i].n + '</option>';
         }
+        document.getElementById('out-bal').innerHTML = bH || "Add a bank.";
+        document.getElementById('tx_b').innerHTML = bO;
+
+        // Draw Category Dropdown
+        var cO = "";
+        var cH = "";
+        for(var j=0; j<db.cats.length; j++) {
+            cO += '<option value="' + db.cats[j].n + '">' + db.cats[j].n + '</option>';
+            cH += '<tr><td>' + db.cats[j].n + '</td><td>' + db.cats[j].t + '</td></tr>';
+        }
+        document.getElementById('tx_c').innerHTML = cO;
+        document.getElementById('out-cat').innerHTML = cH;
+
+        // Draw Recurring
+        var rH = "";
+        for(var k=0; k<db.recs.length; k++) {
+            rH += '<tr><td>' + db.recs[k].d + '</td><td>£' + db.recs[k].a + '</td></tr>';
+        }
+        document.getElementById('out-rec').innerHTML = rH;
     }
 
-    function upP() { db.pin = document.getElementById('pn').value; sync(); alert("PIN Updated"); }
-
-    function draw() {
-        // Balances & Dropdowns
-        var bH = ""; 
-        var bO = ""; for(var j=0; j<db.banks.length; j++) { 
-            var net = 0;
-            for(var x=0; x<db.txs.length; x++) { 
-                if(db.txs[x].b == db.banks[j].n) { net += (db.txs[x].t == 'inc' ? db.txs[x].a : -db.txs[x].a); }
-            }
-            bH += '<button class="bal-card" onclick="document.getElementById(\'sel-b\').value=\''+db.banks[j].n+'\';draw()">' + db.banks[j].n + '<br>£' + (db.banks[j].i + net).toFixed(2) + '</button>';
-            bO += '<option value="'+db.banks[j].n+'">'+db.banks[j].n+'</option>'; 
-        }
-        document.getElementById('out-bal').innerHTML = bH || "Add a bank account.";
-        document.getElementById('rb').innerHTML = bO;
-        document.getElementById('tx_bnk').innerHTML = bO;
-        
-        var cO = ""; for(var k=0; k<db.cats.length; k++) { cO += '<option value="'+db.cats[k].n+'">'+db.cats[k].n+'</option>'; }
-        document.getElementById('rc').innerHTML = cO;
-        document.getElementById('tx_cat').innerHTML = cO;
-
-        var sB = document.getElementById('sel-b');
-        var cur = sB.value;
-        sB.innerHTML = '<option value="">-- View History --</option>' + bO;
-        sB.value = cur;
-
-        // Ledger Logic
-        var hH = "";
-        if(cur) {
-            var bank = null;
-            for(var z=0; z<db.banks.length; z++) { if(db.banks[z].n == cur) bank = db.banks[z]; }
-            var running = bank.i;
-            // Sort txs by date
-            var filtered = [];
-            for(var y=0; y<db.txs.length; y++) { if(db.txs[y].b == cur) filtered.push(db.txs[y]); }
-            filtered.sort(function(a,b){return new Date(a.dt) - new Date(b.
+    window.onload = dr;
+</script>
+</body>
+</html>

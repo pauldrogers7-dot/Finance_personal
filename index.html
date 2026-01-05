@@ -2,187 +2,186 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FinanceVault: Complete Stable</title>
+    <title>FinanceVault: Master Reset</title>
     <style>
-        :root { --primary: #2c3e50; --success: #27ae60; --danger: #e74c3c; --accent: #3498db; --warning: #f39c12; }
+        :root { --primary: #2c3e50; --success: #27ae60; --danger: #e74c3c; --accent: #3498db; }
         body { font-family: sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
-        nav { background: var(--primary); color: white; padding: 15px; display: flex; gap: 20px; align-items: center; position: sticky; top: 0; z-index: 100; }
-        .nav-link { cursor: pointer; font-weight: bold; padding: 8px 12px; border-radius: 4px; background: rgba(255,255,255,0.1); }
-        .container { padding: 20px; max-width: 1100px; margin: 0 auto; }
+        nav { background: var(--primary); color: white; padding: 15px; display: flex; gap: 20px; }
+        .nav-btn { cursor: pointer; font-weight: bold; padding: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; border: none; color: white; }
+        .container { padding: 20px; max-width: 1000px; margin: 0 auto; }
         .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
         .page { display: none; }
         .page.active { display: block; }
-        .bal-grid { display: flex; gap: 15px; flex-wrap: wrap; margin-top: 10px; }
-        .bal-card { background: var(--accent); color: white; padding: 20px; border-radius: 8px; min-width: 160px; text-align: center; }
-        input, select, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box; }
-        button { cursor: pointer; background: var(--primary); color: white; border: none; font-weight: bold; }
-        .btn-go { background: var(--success); }
-        .due-banner { background: #fff3cd; border: 1px solid #ffeeba; padding: 15px; border-radius: 8px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .bal-grid { display: flex; gap: 15px; flex-wrap: wrap; }
+        .bal-card { background: var(--accent); color: white; padding: 15px; border-radius: 8px; min-width: 150px; text-align: center; }
+        input, select, button { width: 100%; padding: 10px; margin: 5px 0; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; }
+        .btn-go { background: var(--success); color: white; border: none; font-weight: bold; cursor: pointer; }
         table { width: 100%; border-collapse: collapse; }
-        td, th { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
+        td, th { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
     </style>
 </head>
 <body>
 
 <nav>
-    <div style="font-weight: bold; color: var(--accent); font-size: 1.2em; margin-right: 10px;">FinanceVault</div>
-    <div class="nav-link" onclick="showPage('dash')">DASHBOARD</div>
-    <div class="nav-link" onclick="showPage('sett')">ACCOUNT SETTINGS</div>
+    <button class="nav-btn" onclick="goTo('dash')">DASHBOARD</button>
+    <button class="nav-btn" onclick="goTo('sett')">ACCOUNT SETTINGS</button>
 </nav>
 
 <div class="container">
-    <div id="pg-dash" class="page active">
-        <div id="alert-box"></div>
-        
+    <div id="p-dash" class="page active">
         <div class="card">
             <h3>Bank Balances</h3>
-            <div id="bal-area" class="bal-grid"></div>
+            <div id="render-bal" class="bal-grid"></div>
         </div>
         
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
             <div class="card">
-                <h3>Record Payment</h3>
-                <form onsubmit="addTx(event)">
+                <h3>New Transaction</h3>
+                <form id="form-tx">
                     <input type="text" id="tx-desc" placeholder="Description" required>
                     <input type="number" id="tx-amt" placeholder="Amount £" step="0.01" required>
-                    <select id="tx-acc"></select>
-                    <select id="tx-cat"></select>
-                    <input type="date" id="tx-date" required>
-                    <button class="btn-go">Post Now</button>
+                    <select id="tx-acc-drop"></select>
+                    <select id="tx-cat-drop"></select>
+                    <input type="date" id="tx-date">
+                    <button type="button" class="btn-go" onclick="submitTx()">Post Transaction</button>
                 </form>
             </div>
             <div class="card">
-                <h3>Add Bank Account</h3>
-                <form onsubmit="addAcc(event)">
-                    <input type="text" id="acc-name" placeholder="Bank Name" required>
-                    <input type="number" id="acc-init" placeholder="Starting Balance £" step="0.01" required>
-                    <button style="background: var(--accent);">Create Account</button>
+                <h3>Add Bank</h3>
+                <form id="form-acc">
+                    <input type="text" id="acc-name-in" placeholder="Bank Name" required>
+                    <input type="number" id="acc-bal-in" placeholder="Balance £" step="0.01" required>
+                    <button type="button" class="btn-go" onclick="submitAcc()">Create Account</button>
                 </form>
             </div>
         </div>
 
         <div class="card">
-            <h3>History</h3>
-            <table>
-                <thead><tr><th>Date</th><th>Desc</th><th>Amount</th><th>Account</th></tr></thead>
-                <tbody id="hist-body"></tbody>
-            </table>
+            <h3>Recent History</h3>
+            <table id="hist-table"><tbody></tbody></table>
         </div>
     </div>
 
-    <div id="pg-sett" class="page">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-            <div class="card">
-                <h3>PIN Management</h3>
-                <input type="password" id="pin-new" placeholder="Enter New PIN">
-                <button onclick="changePin()">Update PIN</button>
-                <p id="pin-notif" style="font-size: 0.8em; color: var(--success);"></p>
-            </div>
-            <div class="card">
-                <h3>Add Recurring Payment</h3>
-                <form onsubmit="addTpl(event)">
-                    <input type="text" id="tpl-desc" placeholder="Netflix/Rent" required>
-                    <input type="number" id="tpl-amt" placeholder="£" step="0.01" required>
-                    <select id="tpl-acc"></select>
-                    <select id="tpl-cat"></select>
-                    <input type="date" id="tpl-date" required>
-                    <button class="btn-go">Save Template</button>
-                </form>
-            </div>
-        </div>
-
+    <div id="p-sett" class="page">
         <div class="card">
-            <h3>Active Recurring Payments</h3>
-            <table id="tpl-table">
-                <thead><tr><th>Description</th><th>Amount</th><th>Next Date</th><th>Action</th></tr></thead>
-                <tbody></tbody>
-            </table>
+            <h3>Manage PIN</h3>
+            <input type="password" id="new-pin" placeholder="Enter New PIN">
+            <button class="btn-go" onclick="updatePin()">Save PIN</button>
         </div>
-
         <div class="card">
             <h3>Categories</h3>
-            <table id="cat-table">
-                <thead><tr><th>Name</th><th>Type</th><th>Action</th></tr></thead>
-                <tbody></tbody>
-            </table>
+            <table id="cat-table"><tbody></tbody></table>
             <hr>
-            <form onsubmit="addCat(event)" style="display:flex; gap:10px;">
-                <input type="text" id="cat-new-name" placeholder="New Category" required>
-                <select id="cat-new-type" style="width:200px;">
-                    <option value="exp">Expense</option>
-                    <option value="inc">Income</option>
-                </select>
-                <button class="btn-go" style="width:150px;">Add</button>
-            </form>
+            <input type="text" id="new-cat-name" placeholder="Category Name">
+            <select id="new-cat-type">
+                <option value="exp">Expense</option>
+                <option value="inc">Income</option>
+            </select>
+            <button class="btn-go" onclick="submitCat()">Add Category</button>
         </div>
+        <button onclick="localStorage.clear(); location.reload();" style="background:var(--danger); color:white; border:none; padding:10px; cursor:pointer;">WIPE EVERYTHING</button>
     </div>
 </div>
 
 <script>
-    const STORAGE_KEY = 'FINANCE_STABLE_V15';
-    let db = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
-        accounts: [], txs: [], templates: [], pin: "1234",
-        categories: [{name: "Salary", type: "inc"}, {name: "Rent", type: "exp"}]
+    const KEY = 'FINANCE_STABLE_V20';
+    
+    // 1. DATA INITIALIZATION
+    let data = JSON.parse(localStorage.getItem(KEY)) || {
+        accounts: [],
+        txs: [],
+        categories: [{name:"Salary", type:"inc"}, {name:"Rent", type:"exp"}],
+        pin: "1234"
     };
 
     function save() {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+        localStorage.setItem(KEY, JSON.stringify(data));
         render();
     }
 
-    function showPage(p) {
-        document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
-        document.getElementById('pg-' + p).classList.add('active');
+    // 2. NAVIGATION
+    function goTo(p) {
+        document.getElementById('p-dash').classList.remove('active');
+        document.getElementById('p-sett').classList.remove('active');
+        document.getElementById('p-' + p).classList.add('active');
         render();
     }
 
-    function addAcc(e) {
-        e.preventDefault();
-        db.accounts.push({ name: document.getElementById('acc-name').value, initial: parseFloat(document.getElementById('acc-init').value) });
-        save(); e.target.reset();
+    // 3. ACTION HANDLERS
+    function submitAcc() {
+        const name = document.getElementById('acc-name-in').value;
+        const bal = parseFloat(document.getElementById('acc-bal-in').value);
+        if(!name || isNaN(bal)) return;
+        data.accounts.push({name, initial: bal});
+        save();
+        document.getElementById('form-acc').reset();
     }
 
-    function addCat(e) {
-        e.preventDefault();
-        db.categories.push({ name: document.getElementById('cat-new-name').value, type: document.getElementById('cat-new-type').value });
-        save(); e.target.reset();
+    function submitCat() {
+        const name = document.getElementById('new-cat-name').value;
+        const type = document.getElementById('new-cat-type').value;
+        if(!name) return;
+        data.categories.push({name, type});
+        save();
+        document.getElementById('new-cat-name').value = "";
     }
 
-    function addTx(e) {
-        e.preventDefault();
-        const cat = db.categories.find(c => c.name === document.getElementById('tx-cat').value);
-        db.txs.push({ id: Date.now(), desc: document.getElementById('tx-desc').value, amt: parseFloat(document.getElementById('tx-amt').value), acc: document.getElementById('tx-acc').value, date: document.getElementById('tx-date').value, type: cat ? cat.type : 'exp' });
-        save(); e.target.reset();
+    function submitTx() {
+        const desc = document.getElementById('tx-desc').value;
+        const amt = parseFloat(document.getElementById('tx-amt').value);
+        const acc = document.getElementById('tx-acc-drop').value;
+        const catName = document.getElementById('tx-cat-drop').value;
+        const date = document.getElementById('tx-date').value;
+
+        if(!desc || isNaN(amt) || !acc) return;
+
+        const cat = data.categories.find(c => c.name === catName);
+        data.txs.push({
+            id: Date.now(),
+            desc, amt, acc, date,
+            type: cat ? cat.type : 'exp'
+        });
+        save();
+        document.getElementById('form-tx').reset();
         document.getElementById('tx-date').valueAsDate = new Date();
     }
 
-    function addTpl(e) {
-        e.preventDefault();
-        db.templates.push({ id: Date.now(), desc: document.getElementById('tpl-desc').value, amt: parseFloat(document.getElementById('tpl-amt').value), acc: document.getElementById('tpl-acc').value, cat: document.getElementById('tpl-cat').value, nextDate: document.getElementById('tpl-date').value });
-        save(); e.target.reset();
-    }
-
-    function processRecurring(id) {
-        const t = db.templates.find(x => x.id === id);
-        const cat = db.categories.find(c => c.name === t.cat);
-        db.txs.push({ id: Date.now(), desc: t.desc, amt: t.amt, acc: t.acc, date: t.nextDate, type: cat ? cat.type : 'exp' });
-        let next = new Date(t.nextDate);
-        next.setMonth(next.getMonth() + 1);
-        t.nextDate = next.toISOString().split('T')[0];
-        save();
-    }
-
-    function changePin() {
-        if(document.getElementById('pin-new').value) {
-            db.pin = document.getElementById('pin-new').value;
+    function updatePin() {
+        const p = document.getElementById('new-pin').value;
+        if(p) {
+            data.pin = p;
             save();
-            document.getElementById('pin-notif').innerText = "PIN updated successfully!";
-            document.getElementById('pin-new').value = "";
+            alert("PIN Updated in Settings!");
+            document.getElementById('new-pin').value = "";
         }
     }
 
+    // 4. THE MASTER RENDER ENGINE
     function render() {
-        const accNames = db.accounts.map(a => a.name);
-        const catNames = db.categories.map(c => c.name);
-        const today = new Date().toISOString().split('T')[0];
+        // Dropdowns
+        const accHtml = data.accounts.map(a => `<option value="${a.name}">${a.name}</option>`).join('');
+        const catHtml = data.categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+        document.getElementById('tx-acc-drop').innerHTML = accHtml;
+        document.getElementById('tx-cat-drop').innerHTML = catHtml;
+
+        // Balances
+        const balBox = document.getElementById('render-bal');
+        balBox.innerHTML = data.accounts.length === 0 ? "No accounts found." : "";
+        data.accounts.forEach(acc => {
+            const net = data.txs.filter(t => t.acc === acc.name).reduce((s, t) => s + (t.type === 'inc' ? t.amt : -t.amt), 0);
+            balBox.innerHTML += `<div class="bal-card">${acc.name}<br><strong>£${(acc.initial + net).toFixed(2)}</strong></div>`;
+        });
+
+        // History
+        document.getElementById('hist-table').innerHTML = data.txs.slice().reverse().slice(0,5).map(t => `
+            <tr><td>${t.date}</td><td>${t.desc}</td><td style="color:${t.type==='inc'?'green':'red'}">£${t.amt.toFixed(2)}</td><td>${t.acc}</td></tr>
+        `).join('');
+
+        // Category Table
+        document.getElementById('cat-table').innerHTML = data.categories.map((c, i) => `
+            <tr><td>${c.name}</td><td>${c.type}</td><td><button onclick="deleteCat(${i})" style="color:red; background:none; border:none; cursor:pointer;">Delete</button></td></tr>
+        `).join('');
+    }
+
+    function deleteCat(i) {
+        data.categories.splice(i, 1);

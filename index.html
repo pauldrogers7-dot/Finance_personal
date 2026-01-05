@@ -141,4 +141,81 @@
             }
         }
         db.txs.push({d: r.n + " (Rec)", a: r.a, b: r.b, t: type});
-        var oldD
+        var oldD = new Date(r.dt);
+        oldD.setDate(oldD.getDate() + r.f);
+        r.dt = oldD.toISOString().split('T')[0];
+        sv();
+    }
+
+    function addTx() {
+        var ds = document.getElementById('tx_ds').value;
+        var am = parseFloat(document.getElementById('tx_am').value);
+        var bk = document.getElementById('tx_bk').value;
+        var ct = document.getElementById('tx_ct').value;
+        if(ds && !isNaN(am)) {
+            var type = 'exp';
+            for(var i=0; i<db.cats.length; i++) { if(db.cats[i].n == ct) type = db.cats[i].t; }
+            for(var j=0; j<db.banks.length; j++) {
+                if(db.banks[j].n == bk) {
+                    if(type == 'inc') db.banks[j].cur += am;
+                    else db.banks[j].cur -= am;
+                }
+            }
+            db.txs.push({d:ds, a:am, b:bk, t:type});
+            sv();
+        }
+    }
+
+    function delC(idx) {
+        if(confirm("Delete this category?")) {
+            db.cats.splice(idx, 1);
+            sv();
+        }
+    }
+
+    function upP() { alert("PIN Updated."); }
+    function sv() { localStorage.setItem(KEY, JSON.stringify(db)); dr(); }
+
+    var filterBk = "";
+    function dr() {
+        var bH = "", bO = "", cO = "";
+        for(var i=0; i<db.banks.length; i++) {
+            bH += '<button class="bal-card" onclick="filterBk=\''+db.banks[i].n+'\';dr()">'+db.banks[i].n+'<br>£'+db.banks[i].cur.toFixed(2)+'</button>';
+            bO += '<option value="'+db.banks[i].n+'">'+db.banks[i].n+'</option>';
+        }
+        for(var j=0; j<db.cats.length; j++) { cO += '<option value="'+db.cats[j].n+'">'+db.cats[j].n+'</option>'; }
+        
+        document.getElementById('out-bal').innerHTML = bH;
+        document.getElementById('tx_bk').innerHTML = bO;
+        document.getElementById('r_bk').innerHTML = bO;
+        document.getElementById('tx_ct').innerHTML = cO;
+        document.getElementById('r_ct').innerHTML = cO;
+
+        var rH = "";
+        for(var l=0; l<db.recs.length; l++) {
+            var r = db.recs[l];
+            rH += '<tr><td>'+r.dt+'</td><td>'+r.n+'</td><td>£'+r.a+'</td>';
+            rH += '<td><button class="btn-sml" onclick="postR('+l+')">Post</button><button class="btn-sml btn-red" onclick="db.recs.splice('+l+',1);sv()">Del</button></td></tr>';
+        }
+        document.getElementById('out-rec').innerHTML = rH;
+
+        document.getElementById('l_title').innerText = filterBk || "Select Account";
+        var lH = "";
+        for(var m=0; m<db.txs.length; m++) {
+            if(db.txs[m].b == filterBk) {
+                lH += '<tr><td>'+db.txs[m].d+'</td><td>£'+db.txs[m].a+'</td></tr>';
+            }
+        }
+        document.getElementById('out-his').innerHTML = lH;
+
+        var cH = "";
+        for(var k=0; k<db.cats.length; k++) { 
+            cH += '<tr><td>'+db.cats[k].n+'</td><td>'+db.cats[k].t+'</td>';
+            cH += '<td><button class="btn-sml btn-red" onclick="delC('+k+')">Delete</button></td></tr>'; 
+        }
+        document.getElementById('out-cat').innerHTML = cH;
+    }
+    window.onload = dr;
+</script>
+</body>
+</html>

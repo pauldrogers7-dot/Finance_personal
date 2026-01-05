@@ -3,12 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finance Pro: Custom Categories & One-Offs</title>
+    <title>Finance Pro: Category Table & Fixed Balances</title>
     <style>
         :root { --primary: #2c3e50; --success: #27ae60; --danger: #e74c3c; --accent: #3498db; --warning: #f39c12; }
-        body { font-family: sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
+        body { font-family: sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
         
-        .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; max-width: 1400px; margin: 0 auto; }
+        /* Navigation */
+        nav { background: var(--primary); color: white; padding: 15px 20px; display: flex; gap: 20px; align-items: center; position: sticky; top: 0; z-index: 100; }
+        nav h2 { margin: 0; margin-right: 20px; font-size: 1.2em; }
+        nav a { color: white; text-decoration: none; cursor: pointer; padding: 5px 10px; border-radius: 4px; }
+        nav a:hover { background: rgba(255,255,255,0.2); }
+        nav a.active { background: var(--accent); }
+
+        .container { padding: 20px; max-width: 1400px; margin: 0 auto; }
+        .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
         .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
         
         input, select, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; }
@@ -17,96 +25,108 @@
         .btn-go { background: var(--success); color: white; }
         .btn-danger { background: var(--danger); color: white; }
         
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9em; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th, td { text-align: left; padding: 12px; border-bottom: 1px solid #eee; }
         
         .bal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
         .bal-card { background: var(--accent); color: white; padding: 20px; border-radius: 8px; text-align: center; }
         .bal-card strong { font-size: 1.4em; display: block; }
         
-        .due-banner { background: #fff9e6; border: 2px solid var(--warning); padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
-        .cat-tag { display: inline-block; background: #eee; padding: 2px 8px; border-radius: 12px; font-size: 0.75em; margin: 2px; }
-        .dev-badge { background: #e67e22; color: white; padding: 5px 10px; border-radius: 5px; font-size: 0.8em; margin-bottom: 10px; display: inline-block; }
+        .page { display: none; }
+        .page.active { display: block; }
     </style>
 </head>
 <body>
 
-<div class="grid">
-    <div class="main">
-        <span class="dev-badge">DEVELOPMENT MODE: PIN DISABLED</span>
-        <div id="due-section"></div>
+<nav>
+    <h2>FinanceVault</h2>
+    <a onclick="showPage('dashboard')" id="nav-dashboard" class="active">Dashboard</a>
+    <a onclick="showPage('categories')" id="nav-categories">Manage Categories</a>
+</nav>
 
-        <div class="card">
-            <h2>Account Balances</h2>
-            <div id="bal-area" class="bal-grid"></div>
-        </div>
+<div class="container">
+    <div id="dashboard" class="page active">
+        <div class="grid">
+            <div class="main">
+                <div class="card">
+                    <h2>Account Balances</h2>
+                    <div id="bal-area" class="bal-grid"></div>
+                </div>
 
-        <div class="card">
-            <h3>Add One-Off Transaction</h3>
-            <form onsubmit="addOneOff(event)" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
-                <input type="text" id="oo-desc" placeholder="Item/Store Name" required style="grid-column: span 2;">
-                <input type="number" id="oo-amt" placeholder="Amount £" step="0.01" required>
-                <input type="date" id="oo-date" required>
-                <select id="oo-acc"></select>
-                <select id="oo-cat"></select>
-                <button class="btn-go" style="grid-column: span 3; margin: 0;">Post Transaction</button>
-            </form>
-        </div>
+                <div class="card">
+                    <h3>Add One-Off Transaction</h3>
+                    <form onsubmit="addOneOff(event)" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                        <input type="text" id="oo-desc" placeholder="Item/Store Name" required style="grid-column: span 2;">
+                        <input type="number" id="oo-amt" placeholder="Amount £" step="0.01" required>
+                        <input type="date" id="oo-date" required>
+                        <select id="oo-acc"></select>
+                        <select id="oo-cat"></select>
+                        <button class="btn-go" style="grid-column: span 3; margin: 0;">Post Transaction</button>
+                    </form>
+                </div>
 
-        <div class="card">
-            <h3>Transaction History</h3>
-            <div style="overflow-x:auto;">
-                <table>
-                    <thead><tr><th>Date</th><th>Desc</th><th>Cat</th><th>Amt</th><th>Acc</th><th></th></tr></thead>
-                    <tbody id="history-body"></tbody>
-                </table>
+                <div class="card">
+                    <h3>Recent History</h3>
+                    <div style="overflow-x:auto;">
+                        <table>
+                            <thead><tr><th>Date</th><th>Desc</th><th>Cat</th><th>Amt</th><th>Acc</th><th></th></tr></thead>
+                            <tbody id="history-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="side">
+                <div class="card" style="border-left: 5px solid var(--warning);">
+                    <h3>Recurring Payments</h3>
+                    <form onsubmit="addTemplate(event)">
+                        <input type="text" id="rt-desc" placeholder="Netflix/Rent" required>
+                        <input type="number" id="rt-amt" placeholder="Amount £" step="0.01" required>
+                        <input type="date" id="rt-date" required>
+                        <select id="rt-acc"></select>
+                        <select id="rt-cat"></select>
+                        <button class="btn-main">Save Template</button>
+                    </form>
+                    <div id="due-section"></div>
+                    <div id="template-list" style="margin-top:10px; font-size:0.8em;"></div>
+                </div>
+
+                <div class="card">
+                    <h3>Manage Bank Accounts</h3>
+                    <form onsubmit="addNewAcc(event)">
+                        <input type="text" id="a-name" placeholder="Bank Name" required>
+                        <input type="number" id="a-bal" placeholder="Current Balance £" step="0.01" required>
+                        <button class="btn-main">Add Account</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="side">
-        <div class="card" style="border-top: 5px solid var(--accent);">
-            <h3>Manage Categories</h3>
-            <div id="category-list" style="margin-bottom: 15px;"></div>
-            <form onsubmit="addCategory(event)">
-                <input type="text" id="cat-name" placeholder="New Category Name" required>
-                <select id="cat-type">
-                    <option value="exp">Expense Type</option>
-                    <option value="inc">Income Type</option>
-                </select>
-                <button class="btn-main">Add Category</button>
-            </form>
-        </div>
-
-        <div class="card" style="border-left: 5px solid var(--warning);">
-            <h3>Recurring Templates</h3>
-            <form onsubmit="addTemplate(event)">
-                <input type="text" id="rt-desc" placeholder="Netflix/Rent" required>
-                <input type="number" id="rt-amt" placeholder="Amount £" step="0.01" required>
-                <input type="date" id="rt-date" required>
-                <select id="rt-acc"></select>
-                <select id="rt-cat"></select>
-                <button class="btn-main">Save Template</button>
-            </form>
-            <div id="template-list" style="margin-top:10px; font-size:0.8em;"></div>
-        </div>
-
+    <div id="categories" class="page">
         <div class="card">
-            <h3>Manage Bank Accounts</h3>
-            <form onsubmit="addNewAcc(event)">
-                <input type="text" id="a-name" placeholder="Bank Name" required>
-                <input type="number" id="a-bal" placeholder="Current Balance £" step="0.01" required>
-                <button class="btn-main">Add Account</button>
+            <h2>Category Table Editor</h2>
+            <p>Define whether a category is for <strong>Income</strong> (adds to balance) or <strong>Expense</strong> (subtracts).</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Category Name</th>
+                        <th>Type</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="category-table-body"></tbody>
+            </table>
+            
+            <h3 style="margin-top:30px;">Add New Category</h3>
+            <form onsubmit="addCategory(event)" style="display: flex; gap: 10px;">
+                <input type="text" id="cat-name" placeholder="e.g. Shopping" required>
+                <select id="cat-type" style="width: 200px;">
+                    <option value="exp">Expense (-)</option>
+                    <option value="inc">Income (+)</option>
+                </select>
+                <button class="btn-go" style="width: 150px;">Add Row</button>
             </form>
-        </div>
-
-        <div class="card" style="border-top: 5px solid var(--danger);">
-            <h3>Account Settings</h3>
-            <form onsubmit="updateUserPin(event)">
-                <input type="password" id="new-pin" placeholder="Update PIN" required>
-                <button class="btn-main">Save PIN</button>
-            </form>
-            <button onclick="fullSystemReset()" class="btn-danger" style="margin-top: 10px;">Wipe All Data</button>
         </div>
     </div>
 </div>
@@ -114,15 +134,18 @@
 <script>
     const DB_KEY = 'Finance_v2026_FINAL';
 
+    // 1. DATA INITIALIZATION
     let state = JSON.parse(localStorage.getItem(DB_KEY)) || {
         pin: "1234",
         accounts: {},
         txs: [],
         templates: [],
-        categories: {
-            inc: ["Salary", "Interest"],
-            exp: ["Groceries", "Bills", "Rent", "Transport", "Leisure"]
-        }
+        categories: [
+            { name: "Salary", type: "inc" },
+            { name: "Rent", type: "exp" },
+            { name: "Groceries", type: "exp" },
+            { name: "Bills", type: "exp" }
+        ]
     };
 
     function save() {
@@ -130,39 +153,44 @@
         refreshUI();
     }
 
-    function fullSystemReset() {
-        if(confirm("Wipe all data?")) { localStorage.clear(); location.reload(); }
+    // 2. NAVIGATION
+    function showPage(pageId) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+        document.getElementById(pageId).classList.add('active');
+        document.getElementById('nav-' + pageId).classList.add('active');
     }
 
-    // CATEGORY MANAGEMENT
+    // 3. CATEGORY LOGIC
     function addCategory(e) {
         e.preventDefault();
-        const name = document.getElementById('cat-name').value;
-        const type = document.getElementById('cat-type').value;
-        if (!state.categories[type].includes(name)) {
-            state.categories[type].push(name);
-            save();
-        }
+        state.categories.push({
+            name: document.getElementById('cat-name').value,
+            type: document.getElementById('cat-type').value
+        });
+        save();
         e.target.reset();
     }
 
-    function removeCategory(type, name) {
-        state.categories[type] = state.categories[type].filter(c => c !== name);
+    function removeCategory(index) {
+        state.categories.splice(index, 1);
         save();
     }
 
-    // TRANSACTION MANAGEMENT
+    // 4. TRANSACTION LOGIC
     function addOneOff(e) {
         e.preventDefault();
-        const cat = document.getElementById('oo-cat').value;
+        const catName = document.getElementById('oo-cat').value;
+        const catObj = state.categories.find(c => c.name === catName);
+        
         state.txs.push({
             id: Date.now(),
             date: document.getElementById('oo-date').value,
             desc: document.getElementById('oo-desc').value,
             amt: parseFloat(document.getElementById('oo-amt').value),
             acc: document.getElementById('oo-acc').value,
-            cat: cat,
-            type: state.categories.inc.includes(cat) ? 'inc' : 'exp'
+            cat: catName,
+            type: catObj ? catObj.type : 'exp'
         });
         save();
         e.target.reset();
@@ -176,52 +204,55 @@
         e.target.reset();
     }
 
-    function addTemplate(e) {
-        e.preventDefault();
-        const cat = document.getElementById('rt-cat').value;
-        state.templates.push({
-            id: Date.now(),
-            desc: document.getElementById('rt-desc').value,
-            amt: parseFloat(document.getElementById('rt-amt').value),
-            nextDate: document.getElementById('rt-date').value,
-            freq: 30, // Default monthly
-            acc: document.getElementById('rt-acc').value,
-            cat: cat,
-            type: state.categories.inc.includes(cat) ? 'inc' : 'exp'
-        });
-        save();
-        e.target.reset();
-    }
-
     function postRecurring(id) {
         const t = state.templates.find(x => x.id === id);
-        state.txs.push({
-            id: Date.now(),
-            date: t.nextDate,
-            desc: t.desc,
-            amt: t.amt,
-            acc: t.acc,
-            cat: t.cat,
-            type: t.type
-        });
+        state.txs.push({ id: Date.now(), date: t.nextDate, desc: t.desc, amt: t.amt, acc: t.acc, cat: t.cat, type: t.type });
         let d = new Date(t.nextDate);
         d.setMonth(d.getMonth() + 1);
         t.nextDate = d.toISOString().split('T')[0];
         save();
     }
 
+    // 5. THE CRITICAL REFRESH UI (FORCED STABILITY)
     function refreshUI() {
         const accNames = Object.keys(state.accounts);
-        const allCats = [...state.categories.inc, ...state.categories.exp];
         
-        // Update Select Dropdowns
-        const selects = ['oo-acc', 'rt-acc', 'oo-cat', 'rt-cat'];
-        document.getElementById('oo-acc').innerHTML = accNames.map(n => `<option>${n}</option>`).join('');
-        document.getElementById('rt-acc').innerHTML = accNames.map(n => `<option>${n}</option>`).join('');
-        document.getElementById('oo-cat').innerHTML = allCats.map(c => `<option>${c}</option>`).join('');
-        document.getElementById('rt-cat').innerHTML = allCats.map(c => `<option>${c}</option>`).join('');
+        // Update Selects
+        const catOptions = state.categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+        const accOptions = accNames.map(n => `<option value="${n}">${n}</option>`).join('');
+        
+        document.getElementById('oo-acc').innerHTML = accOptions;
+        document.getElementById('rt-acc').innerHTML = accOptions;
+        document.getElementById('oo-cat').innerHTML = catOptions;
+        document.getElementById('rt-cat').innerHTML = catOptions;
 
-        // Category Manager Display
-        const catArea = document.getElementById('category-list');
-        catArea.innerHTML = '<strong>Expenses:</strong><br>';
-        state.categories.exp.forEach
+        // Render Category Table
+        document.getElementById('category-table-body').innerHTML = state.categories.map((c, i) => `
+            <tr>
+                <td><strong>${c.name}</strong></td>
+                <td>${c.type === 'inc' ? '<span style="color:green">Income (+)</span>' : '<span style="color:red">Expense (-)</span>'}</td>
+                <td><button onclick="removeCategory(${i})" style="color:red; background:none; width:auto;">Delete</button></td>
+            </tr>
+        `).join('');
+
+        // Render Balances (Error-Safe)
+        const balArea = document.getElementById('bal-area');
+        balArea.innerHTML = '';
+        accNames.forEach(name => {
+            const history = state.txs.filter(t => t.acc === name);
+            const net = history.reduce((sum, t) => sum + (t.type === 'inc' ? t.amt : -t.amt), 0);
+            const startBal = state.accounts[name] || 0;
+            balArea.innerHTML += `<div class="bal-card">${name}<strong>£${(startBal + net).toFixed(2)}</strong></div>`;
+        });
+
+        // Render History
+        document.getElementById('history-body').innerHTML = state.txs.slice().reverse().slice(0,10).map(t => `
+            <tr>
+                <td>${t.date}</td><td>${t.desc}</td><td>${t.cat}</td>
+                <td style="color:${t.type==='inc'?'green':'red'}">£${t.amt.toFixed(2)}</td><td>${t.acc}</td>
+                <td><button onclick="state.txs=state.txs.filter(x=>x.id!==${t.id}); save();" style="color:red; background:none; width:auto;">&times;</button></td>
+            </tr>
+        `).join('');
+    }
+
+    window

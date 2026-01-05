@@ -2,22 +2,20 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>FinanceVault: v130 Automation</title>
+    <title>FinanceVault: v135 Safe-Automation</title>
     <style>
         body { font-family: sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
         .nav { background: #2c3e50; padding: 10px; display: flex; gap: 10px; }
         .n-btn { color: white; background: #34495e; border: none; padding: 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
         .page { display: none; padding: 20px; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; max-width: 900px; margin-left: auto; margin-right: auto; }
-        .bal-card { background: #3498db; color: white; padding: 15px; border-radius: 6px; display: inline-block; margin: 5px; font-weight: bold; min-width: 130px; text-align: center; border: none; cursor: pointer; }
-        .alert-card { background: #fff3cd; border: 1px solid #ffeeba; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
-        input, select, button { width: 100%; padding: 10px; margin: 5px 0; box-sizing: border-box; font-size: 16px; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; max-width: 800px; margin-left: auto; margin-right: auto; }
+        .bal-card { background: #3498db; color: white; padding: 15px; border-radius: 6px; display: inline-block; margin: 5px; font-weight: bold; min-width: 120px; text-align: center; border: none; cursor: pointer; }
+        .alert-card { background: #fff3cd; border-left: 5px solid #ffa000; padding: 15px; border-radius: 4px; margin-bottom: 15px; font-size: 14px; }
+        input, select, button { width: 100%; padding: 12px; margin: 5px 0; box-sizing: border-box; font-size: 16px; }
         .btn-grn { background: #27ae60; color: white; border: none; font-weight: bold; cursor: pointer; }
-        .btn-sml { width: auto; padding: 5px 10px; font-size: 12px; margin: 2px; }
+        .btn-sml { width: auto; padding: 6px 12px; font-size: 12px; margin: 2px; border-radius: 4px; border: 1px solid #ccc; cursor: pointer; }
         table { width: 100%; border-collapse: collapse; }
         td, th { border-bottom: 1px solid #ddd; padding: 10px; text-align: left; }
-        .red { color: #e74c3c; font-weight: bold; }
-        .grn { color: #27ae60; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -36,42 +34,48 @@
         <div id="out-bal"></div>
     </div>
     <div class="card">
-        <h3>Post Manual Transaction</h3>
-        <input type="date" id="tx_date">
-        <input type="text" id="tx_desc" placeholder="Description">
-        <input type="number" id="tx_amt" placeholder="£">
-        <select id="tx_bank"></select>
-        <select id="tx_cat"></select>
-        <button class="btn-grn" onclick="addTx()">Post Now</button>
+        <h3>New Bank Setup</h3>
+        <input type="text" id="bn_n" placeholder="Bank Name">
+        <input type="number" id="bn_i" placeholder="Starting Balance £">
+        <button class="btn-grn" onclick="addB()" style="background:#2c3e50">Save New Bank</button>
     </div>
     <div class="card">
-        <h3>Ledger: <span id="l_title">Select Bank</span></h3>
+        <h3>Quick Post</h3>
+        <input type="date" id="tx_dt">
+        <input type="text" id="tx_ds" placeholder="Description">
+        <input type="number" id="tx_am" placeholder="Amount £">
+        <select id="tx_bk"></select>
+        <select id="tx_ct"></select>
+        <button class="btn-grn" onclick="addTx()">Post Transaction</button>
+    </div>
+    <div class="card">
+        <h3>Ledger: <span id="l_title">Select Account</span></h3>
         <table id="tbl_l"><thead><tr><th>Date</th><th>Desc</th><th>Amt</th></tr></thead><tbody id="out-his"></tbody></table>
     </div>
 </div>
 
 <div id="p2" class="page">
     <div class="card">
-        <h3 id="rec-title">Add/Edit Recurring</h3>
-        <input type="hidden" id="edit_idx" value="-1">
-        <input type="text" id="rd_n" placeholder="Name (e.g. Rent)">
-        <input type="number" id="rd_a" placeholder="Amount £">
-        <select id="rd_b"></select>
-        <select id="rd_c"></select>
-        <select id="rd_f">
-            <option value="7">Every Week</option>
-            <option value="14">Every 2 Weeks</option>
+        <h3 id="r_head">Add Recurring</h3>
+        <input type="hidden" id="r_idx" value="-1">
+        <input type="text" id="r_n" placeholder="e.g. Rent">
+        <input type="number" id="r_a" placeholder="£">
+        <select id="r_bk"></select>
+        <select id="r_ct"></select>
+        <select id="r_f">
+            <option value="7">Weekly</option>
+            <option value="14">Fortnightly</option>
             <option value="30" selected>Monthly</option>
             <option value="365">Yearly</option>
         </select>
-        <input type="date" id="rd_dt">
-        <button class="btn-grn" id="btn-rec" onclick="saveR()">Save Recurring</button>
-        <button onclick="resetRForm()" id="btn-rec-can" style="display:none; background:#ccc; border:none;">Cancel Edit</button>
+        <input type="date" id="r_dt">
+        <button class="btn-grn" id="r_btn" onclick="saveR()">Save Template</button>
+        <button onclick="resetR()" id="r_can" style="display:none; background:#eee;">Cancel Edit</button>
     </div>
     <div class="card">
-        <h3>Recurring Schedule (Ascending)</h3>
+        <h3>Upcoming Payments</h3>
         <table>
-            <thead><tr><th>Next Due</th><th>Name</th><th>£</th><th>Freq</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Next Date</th><th>Name</th><th>£</th><th>Action</th></tr></thead>
             <tbody id="out-rec"></tbody>
         </table>
     </div>
@@ -79,144 +83,49 @@
 
 <div id="p3" class="page">
     <div class="card">
-        <h3>Categories</h3>
+        <h3>Category Manager</h3>
         <input type="text" id="cn_n" placeholder="Name">
         <select id="cn_t"><option value="exp">Expense</option><option value="inc">Income</option></select>
         <button class="btn-grn" onclick="addC()">Add Category</button>
     </div>
     <div class="card"><table><tbody id="out-cat"></tbody></table></div>
 </div>
+
 <div id="p4" class="page">
-    <div class="card"><h3>Settings</h3><input type="password" id="set_pin"><button class="btn-grn" onclick="upP()">Update PIN</button></div>
-    <button onclick="localStorage.clear();location.reload();" style="margin:50px; color:red;">RESET ALL</button>
+    <div class="card">
+        <h3>Account Settings</h3>
+        <input type="password" id="set_pin" placeholder="Update PIN">
+        <button class="btn-grn" onclick="upP()">Update PIN</button>
+    </div>
 </div>
 
 <script>
-    var KEY = 'FV_V130_STABLE';
-    var db = { banks: [], cats: [{n:"Salary", t:"inc"}, {n:"Rent", t:"exp"}], recs: [], txs: [], pin: "1234" };
+    var KEY = 'FV_V135_FINAL';
+    var db = { banks: [], cats: [{n:"Salary", t:"inc"}, {n:"Rent", t:"exp"}], recs: [], txs: [] };
+
     var saved = localStorage.getItem(KEY);
     if(saved) { db = JSON.parse(saved); }
 
     function sh(id) {
-        document.getElementById('p1').style.display = 'none';
-        document.getElementById('p2').style.display = 'none';
-        document.getElementById('p3').style.display = 'none';
-        document.getElementById('p4').style.display = 'none';
+        var p = ['p1','p2','p3','p4'];
+        for(var i=0; i<4; i++) { document.getElementById(p[i]).style.display = 'none'; }
         document.getElementById(id).style.display = 'block';
         dr();
     }
 
-    // Logic: Save Recurring (Add or Edit)
+    function addB() {
+        var n = document.getElementById('bn_n').value;
+        var i = parseFloat(document.getElementById('bn_i').value);
+        if(n && !isNaN(i)) { db.banks.push({n: n, cur: i}); sv(); }
+    }
+
+    function addC() {
+        var n = document.getElementById('cn_n').value;
+        var t = document.getElementById('cn_t').value;
+        if(n) { db.cats.push({n: n, t: t}); sv(); }
+    }
+
     function saveR() {
-        var idx = document.getElementById('edit_idx').value;
+        var idx = document.getElementById('r_idx').value;
         var r = {
-            n: document.getElementById('rd_n').value,
-            a: parseFloat(document.getElementById('rd_a').value),
-            b: document.getElementById('rd_b').value,
-            c: document.getElementById('rd_c').value,
-            f: parseInt(document.getElementById('rd_f').value),
-            dt: document.getElementById('rd_dt').value
-        };
-        if(r.n && !isNaN(r.a)) {
-            if(idx == "-1") db.recs.push(r);
-            else db.recs[idx] = r;
-            resetRForm(); sv();
-        }
-    }
-
-    // Logic: Post a Recurring to Ledger & Move Date Forward
-    function postRec(idx) {
-        var r = db.recs[idx];
-        // 1. Post to transactions
-        var type = 'exp';
-        for(var i=0; i<db.cats.length; i++) { if(db.cats[i].n == r.c) type = db.cats[i].t; }
-        db.txs.push({dt: r.dt, d: r.n + " (Recurring)", a: r.a, b: r.b, t: type});
-        
-        // 2. Update Bank Balance
-        for(var j=0; j<db.banks.length; j++) {
-            if(db.banks[j].n == r.b) {
-                if(type == 'inc') db.banks[j].cur += r.a;
-                else db.banks[j].cur -= r.a;
-            }
-        }
-        
-        // 3. Increment Date
-        var d = new Date(r.dt);
-        d.setDate(d.getDate() + r.f);
-        r.dt = d.toISOString().split('T')[0];
-        sv();
-    }
-
-    function editR(idx) {
-        var r = db.recs[idx];
-        document.getElementById('edit_idx').value = idx;
-        document.getElementById('rd_n').value = r.n;
-        document.getElementById('rd_a').value = r.a;
-        document.getElementById('rd_b').value = r.b;
-        document.getElementById('rd_c').value = r.c;
-        document.getElementById('rd_f').value = r.f;
-        document.getElementById('rd_dt').value = r.dt;
-        document.getElementById('rec-title').innerText = "Edit Recurring Item";
-        document.getElementById('btn-rec').innerText = "Update Template";
-        document.getElementById('btn-rec-can').style.display = "block";
-    }
-
-    function resetRForm() {
-        document.getElementById('edit_idx').value = "-1";
-        document.getElementById('rd_n').value = "";
-        document.getElementById('rd_a').value = "";
-        document.getElementById('rec-title').innerText = "Add Recurring";
-        document.getElementById('btn-rec').innerText = "Save Recurring";
-        document.getElementById('btn-rec-can').style.display = "none";
-    }
-
-    // Standard Helpers
-    function addB() { var n=document.getElementById('bn_n').value; var i=parseFloat(document.getElementById('bn_i').value); if(n && !isNaN(i)) { db.banks.push({n:n, cur:i}); sv(); } }
-    function addC() { var n=document.getElementById('cn_n').value; var t=document.getElementById('cn_t').value; if(n) { db.cats.push({n:n, t:t}); sv(); } }
-    function addTx() {
-        var d=document.getElementById('tx_desc').value; var a=parseFloat(document.getElementById('tx_amt').value); var b=document.getElementById('tx_bank').value; var c=document.getElementById('tx_cat').value; var dt=document.getElementById('tx_date').value;
-        if(d && !isNaN(a) && b) {
-            var type = 'exp'; for(var i=0; i<db.cats.length; i++){ if(db.cats[i].n == c) type=db.cats[i].t; }
-            for(var j=0; j<db.banks.length; j++){ if(db.banks[j].n == b){ if(type=='inc') db.banks[j].cur+=a; else db.banks[j].cur-=a; } }
-            db.txs.push({dt:dt, d:d, a:a, b:b, t:type}); sv();
-        }
-    }
-    function upP() { db.pin = document.getElementById('set_pin').value; sv(); }
-    function sv() { localStorage.setItem(KEY, JSON.stringify(db)); dr(); }
-
-    var filterBank = "";
-    function setL(name) { filterBank = name; dr(); }
-
-    function dr() {
-        // Balances & DDLs
-        var bH="", bO="", cO="";
-        for(var i=0; i<db.banks.length; i++) {
-            bH += '<button class="bal-card" onclick="setL(\''+db.banks[i].n+'\')">'+db.banks[i].n+'<br>£'+db.banks[i].cur.toFixed(2)+'</button>';
-            bO += '<option value="'+db.banks[i].n+'">'+db.banks[i].n+'</option>';
-        }
-        for(var j=0; j<db.cats.length; j++) { cO += '<option value="'+db.cats[j].n+'">'+db.cats[j].n+'</option>'; }
-        document.getElementById('out-bal').innerHTML = bH || "Add a bank.";
-        document.getElementById('tx_bank').innerHTML = bO; document.getElementById('rd_b').innerHTML = bO;
-        document.getElementById('tx_cat').innerHTML = cO; document.getElementById('rd_c').innerHTML = cO;
-
-        // Alerts (Overdue Recurring)
-        var aH = "";
-        var today = new Date().toISOString().split('T')[0];
-        for(var k=0; k<db.recs.length; k++) {
-            if(db.recs[k].dt <= today) {
-                aH += '<div class="alert-card"><strong>Overdue:</strong> '+db.recs[k].n+' was due on '+db.recs[k].dt+'. <button class="btn-grn btn-sml" onclick="postRec('+k+')">Post & Move Forward</button></div>';
-            }
-        }
-        document.getElementById('out-alerts').innerHTML = aH;
-
-        // Recurring List (Sorted by Date)
-        var sortedR = []; for(var x=0; x<db.recs.length; x++) { sortedR.push({idx: x, r: db.recs[x]}); }
-        sortedR.sort(function(a,b){ return new Date(a.r.dt) - new Date(b.r.dt); });
-        
-        var rH = "";
-        for(var y=0; y<sortedR.length; y++) {
-            var item = sortedR[y].r;
-            rH += '<tr><td>'+item.dt+'</td><td>'+item.n+'</td><td>£'+item.a.toFixed(2)+'</td><td>'+item.f+' days</td>';
-            rH += '<td><button class="btn-grn btn-sml" onclick="postRec('+sortedR[y].idx+')">Post</button>';
-            rH += '<button class="btn-sml" onclick="editR('+sortedR[y].idx+')">Edit</button>';
-            rH += '<button class="btn-sml" style="background:red; color:white;" onclick="db.recs.splice('+sortedR[y].idx+',1);sv()">Del
+            n: document.getElementById('r_n').

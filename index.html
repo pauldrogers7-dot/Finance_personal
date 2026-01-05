@@ -3,17 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finance Pro: Recurring Restored</title>
+    <title>Finance Pro: Dev Mode (No PIN)</title>
     <style>
         :root { --primary: #2c3e50; --success: #27ae60; --danger: #e74c3c; --accent: #3498db; --warning: #f39c12; }
         body { font-family: sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
-        
-        #lock-screen { 
-            position: fixed; inset: 0; background: #2c3e50; 
-            display: flex; flex-direction: column; justify-content: center; align-items: center; 
-            z-index: 9999; color: white; 
-        }
-        .lock-box { background: white; padding: 40px; border-radius: 15px; width: 320px; text-align: center; color: #333; }
         
         .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; max-width: 1200px; margin: 0 auto; }
         .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
@@ -22,7 +15,7 @@
         button { cursor: pointer; font-weight: bold; border: none; }
         .btn-main { background: var(--primary); color: white; }
         .btn-go { background: var(--success); color: white; }
-        .btn-reset { background: none; color: var(--danger); text-decoration: underline; border: none; font-size: 0.9em; margin-top: 20px; }
+        .btn-danger { background: var(--danger); color: white; }
         
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9em; }
         th, td { text-align: left; padding: 12px; border-bottom: 1px solid #eee; }
@@ -30,22 +23,17 @@
         .bal-card { background: var(--accent); color: white; padding: 15px; border-radius: 8px; text-align: center; }
         
         .due-banner { background: #fff9e6; border: 2px solid var(--warning); padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .dev-badge { background: #e67e22; color: white; padding: 5px 10px; border-radius: 5px; font-size: 0.8em; margin-bottom: 10px; display: inline-block; }
     </style>
 </head>
 <body>
 
-<div id="lock-screen">
-    <div class="lock-box">
-        <h2 style="margin-top:0">Vault Locked</h2>
-        <input type="password" id="pin-input" placeholder="PIN" style="font-size: 2em; text-align: center;" autofocus>
-        <button onclick="checkPin()" class="btn-main">Unlock Dashboard</button>
-        <button onclick="fullSystemReset()" class="btn-reset">RESET APP (Clears Cache)</button>
-    </div>
-</div>
-
 <div class="grid">
     <div class="main">
-        <div id="due-section"></div> <div class="card">
+        <span class="dev-badge">DEVELOPMENT MODE: PIN DISABLED</span>
+        <div id="due-section"></div>
+
+        <div class="card">
             <h2>Account Balances</h2>
             <div id="bal-area" class="bal-grid"></div>
         </div>
@@ -62,10 +50,14 @@
     <div class="side">
         <div class="card" style="border-top: 5px solid var(--danger);">
             <h3>Account Settings</h3>
+            <p style="font-size: 0.85em; color: #666;">Manage your security and data here.</p>
             <form onsubmit="updateUserPin(event)">
-                <input type="password" id="new-pin" placeholder="Set New PIN" required>
-                <button class="btn-main">Save PIN</button>
+                <label style="font-size: 0.8em;">Update Vault PIN:</label>
+                <input type="password" id="new-pin" placeholder="New PIN (e.g. 1234)" required>
+                <button class="btn-main">Update PIN</button>
             </form>
+            <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+            <button onclick="fullSystemReset()" class="btn-danger">Clear All App Data</button>
         </div>
 
         <div class="card" style="border-left: 5px solid var(--warning);">
@@ -90,7 +82,7 @@
         </div>
 
         <div class="card">
-            <h3>Add New Bank Account</h3>
+            <h3>Quick Add Bank Account</h3>
             <form onsubmit="addNewAcc(event)">
                 <input type="text" id="a-name" placeholder="Bank Name" required>
                 <input type="number" id="a-bal" placeholder="Opening Bal £" step="0.01" required>
@@ -110,16 +102,11 @@
         templates: []
     };
 
-    function checkPin() {
-        if(document.getElementById('pin-input').value === state.pin) {
-            sessionStorage.setItem('unlocked', 'true');
-            document.getElementById('lock-screen').style.display = 'none';
-            refreshUI();
-        } else { alert("Wrong PIN."); }
-    }
-
     function fullSystemReset() {
-        if(confirm("Wipe everything?")) { localStorage.clear(); location.reload(); }
+        if(confirm("Are you sure? This will wipe all accounts, history, and templates.")) {
+            localStorage.clear();
+            location.reload();
+        }
     }
 
     function addTemplate(e) {
@@ -147,7 +134,6 @@
             date: t.nextDate
         });
         
-        // Update next date
         let d = new Date(t.nextDate);
         d.setDate(d.getDate() + t.freq);
         t.nextDate = d.toISOString().split('T')[0];
@@ -167,11 +153,9 @@
     }
 
     function refreshUI() {
-        if(sessionStorage.getItem('unlocked') !== 'true') return;
         const accNames = Object.keys(state.accounts);
         document.getElementById('rt-acc').innerHTML = accNames.map(n => `<option>${n}</option>`).join('');
 
-        // 1. Show Balances
         const balArea = document.getElementById('bal-area');
         balArea.innerHTML = '';
         accNames.forEach(name => {
@@ -180,14 +164,19 @@
             balArea.innerHTML += `<div class="bal-card">${name}<br><strong>£${total.toFixed(2)}</strong></div>`;
         });
 
-        // 2. Show History
         document.getElementById('history-body').innerHTML = state.txs.slice().reverse().slice(0,10).map((t, idx) => `
             <tr><td>${t.date}</td><td>${t.desc}</td><td style="color:${t.type==='inc'?'green':'red'}">£${t.amt.toFixed(2)}</td><td>${t.acc}</td>
             <td><button onclick="state.txs.splice(${state.txs.length - 1 - idx}, 1); save();" style="color:red; background:none; width:auto; padding:0;">&times;</button></td></tr>
         `).join('');
 
-        // 3. Show Templates List
         document.getElementById('template-list').innerHTML = state.templates.map(t => `
             <div style="border-bottom:1px solid #eee; padding:5px; display:flex; justify-content:space-between;">
                 <span>${t.desc} (£${t.amt})</span>
-                <button onclick="state.templates =
+                <button onclick="state.templates = state.templates.filter(x => x.id !== ${t.id}); save();" style="width:auto; color:red; background:none;">&times;</button>
+            </div>
+        `).join('');
+
+        const dueSec = document.getElementById('due-section');
+        dueSec.innerHTML = '';
+        const today = new Date().toISOString().split('T')[0];
+        state.templates.forEach(t => {

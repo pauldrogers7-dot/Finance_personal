@@ -1,8 +1,9 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finance Monitor Pro (£)</title>
+    <title>Finance Pro: Recurring Edition (£)</title>
     <style>
         :root { --primary: #2c3e50; --success: #27ae60; --danger: #e74c3c; --accent: #3498db; }
         body { font-family: 'Segoe UI', sans-serif; max-width: 1200px; margin: 0 auto; background: #f0f2f5; padding: 20px; display: flex; flex-wrap: wrap; gap: 20px; }
@@ -20,7 +21,7 @@
         button { cursor: pointer; border: none; border-radius: 6px; padding: 8px; font-weight: bold; }
         .btn-add { background: var(--primary); color: white; }
         .mgr-section { margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; }
-        .acc-item { display: flex; justify-content: space-between; align-items: center; background: #f9f9f9; padding: 8px; border-radius: 6px; margin-bottom: 5px; font-size: 0.9em; }
+        .recurring-item { font-size: 0.8em; background: #f1f2f6; padding: 5px; margin-bottom: 5px; border-radius: 4px; display: flex; justify-content: space-between; }
     </style>
 </head>
 <body>
@@ -47,7 +48,7 @@
             <input type="date" id="date" required>
             <select id="acc-select"></select>
             <select id="cat-select" class="full-width"></select>
-            <button type="submit" class="btn-add full-width">Save Transaction</button>
+            <button type="submit" class="btn-add full-width">Add One-Off Transaction</button>
         </form>
         <div style="max-height: 400px; overflow-y: auto;">
             <table>
@@ -60,25 +61,24 @@
 
 <div class="side-content">
     <div class="card-panel">
+        <h3>Recurring Payments</h3>
+        <form onsubmit="addRecurring(event)" style="display:grid; gap:5px;">
+            <input type="text" id="rec-desc" placeholder="Monthly Bill Name" required>
+            <input type="number" id="rec-amt" placeholder="Amount £" step="0.01" required>
+            <select id="rec-acc"></select>
+            <select id="rec-cat"></select>
+            <button class="btn-add">Add Monthly Recurring</button>
+        </form>
+        <div id="recurring-list" style="margin-top:10px;"></div>
+    </div>
+
+    <div class="card-panel">
         <h3>Manage Accounts</h3>
-        <div class="mgr-section">
-            <strong>Add/Update Account:</strong>
-            <form onsubmit="upsertAccount(event)" style="display:grid; grid-template-columns: 1fr 1fr; gap:5px; margin-top:10px;">
-                <input type="text" id="new-acc-name" placeholder="Account Name" required>
-                <input type="number" id="new-acc-open" placeholder="Opening Bal £" step="0.01" required>
-                <button class="btn-add full-width">Add / Update Balance</button>
-            </form>
-            <div id="acc-list-detailed" style="margin-top:10px;"></div>
-        </div>
-        
-        <div class="mgr-section">
-            <strong>Add Category:</strong>
-            <form onsubmit="addCategory(event)" style="display:flex; margin-top:5px; gap:5px;">
-                <input type="text" id="new-cat-name" placeholder="e.g. Subs" required>
-                <select id="new-cat-type"><option value="exp">Exp</option><option value="inc">Inc</option></select>
-                <button class="btn-add">Add</button>
-            </form>
-        </div>
+        <form onsubmit="upsertAccount(event)" style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">
+            <input type="text" id="new-acc-name" placeholder="Account Name" required>
+            <input type="number" id="new-acc-open" placeholder="Opening Bal £" step="0.01" required>
+            <button class="btn-add full-width">Set Balance</button>
+        </form>
     </div>
 
     <div class="card-panel">
@@ -89,40 +89,77 @@
 
 <script>
     const PIN = "1234";
-    function unlock() { if(document.getElementById('pin-entry').value === PIN) { sessionStorage.setItem('auth', 'ok'); document.getElementById('lock-screen').style.display = 'none'; } }
+    function unlock() { 
+        if(document.getElementById('pin-entry').value === PIN) { 
+            sessionStorage.setItem('auth', 'ok'); 
+            document.getElementById('lock-screen').style.display = 'none'; 
+            processRecurring(); 
+        } 
+    }
     function lock() { sessionStorage.removeItem('auth'); location.reload(); }
-    if(sessionStorage.getItem('auth') === 'ok') document.getElementById('lock-screen').style.display = 'none';
+    if(sessionStorage.getItem('auth') === 'ok') {
+        document.getElementById('lock-screen').style.display = 'none';
+        window.onload = processRecurring;
+    }
 
-    // --- DATA STRUCTURE ---
-    // data.accounts is now an object: { "Bank": 1000.00 } where the value is the opening balance
-    let data = JSON.parse(localStorage.getItem('fin_v3')) || {
+    let data = JSON.parse(localStorage.getItem('fin_v4')) || {
         accounts: { "Cash": 0, "Bank": 0 },
-        categories: { inc: ["Salary", "Gift"], exp: ["Food", "Rent", "Transport"] },
-        txs: []
+        categories: { inc: ["Salary", "Gift"], exp: ["Food", "Rent", "Subs"] },
+        txs: [],
+        recurring: [] 
     };
 
-    function sync() { localStorage.setItem('fin_v3', JSON.stringify(data)); render(); }
+    function sync() { localStorage.setItem('fin_v4', JSON.stringify(data)); render(); }
+
+    function addRecurring(e) {
+        e.preventDefault();
+        data.recurring.push({
+            id: Date.now(),
+            desc: document.getElementById('rec-desc').value,
+            amt: parseFloat(document.getElementById('rec-amt').value),
+            acc: document.getElementById('rec-acc').value,
+            cat: document.getElementById('rec-cat').value
+        });
+        e.target.reset(); sync(); processRecurring();
+    }
+
+    function removeRecurring(id) {
+        data.recurring = data.recurring.filter(r => r.id !== id);
+        sync();
+    }
+
+    // Logic to automatically add transactions for the current month
+    function processRecurring() {
+        const currentMonth = new Date().toISOString().slice(0, 7); // "2023-10"
+        let added = false;
+
+        data.recurring.forEach(rule => {
+            const alreadyExists = data.txs.find(t => t.desc === rule.desc && t.date.startsWith(currentMonth));
+            if (!alreadyExists) {
+                data.txs.push({
+                    id: Date.now() + Math.random(),
+                    date: currentMonth + "-01", // Default to 1st of month
+                    acc: rule.acc,
+                    desc: rule.desc,
+                    amt: rule.amt,
+                    cat: rule.cat,
+                    type: data.categories.inc.includes(rule.cat) ? 'inc' : 'exp'
+                });
+                added = true;
+            }
+        });
+        if (added) sync();
+    }
 
     function upsertAccount(e) {
         e.preventDefault();
-        const name = document.getElementById('new-acc-name').value;
-        const opening = parseFloat(document.getElementById('new-acc-open').value);
-        data.accounts[name] = opening; // This adds or updates existing
-        e.target.reset(); sync();
-    }
-
-    function addCategory(e) {
-        e.preventDefault();
-        const name = document.getElementById('new-cat-name').value;
-        const type = document.getElementById('new-cat-type').value;
-        if(!data.categories[type].includes(name)) data.categories[type].push(name);
+        data.accounts[document.getElementById('new-acc-name').value] = parseFloat(document.getElementById('new-acc-open').value);
         e.target.reset(); sync();
     }
 
     document.getElementById('tx-form').onsubmit = (e) => {
         e.preventDefault();
         const cat = document.getElementById('cat-select').value;
-        const type = data.categories.inc.includes(cat) ? 'inc' : 'exp';
         data.txs.push({
             id: Date.now(),
             date: document.getElementById('date').value,
@@ -130,7 +167,7 @@
             desc: document.getElementById('desc').value,
             amt: parseFloat(document.getElementById('amt').value),
             cat: cat,
-            type: type
+            type: data.categories.inc.includes(cat) ? 'inc' : 'exp'
         });
         sync(); e.target.reset(); document.getElementById('date').valueAsDate = new Date();
     };
@@ -138,27 +175,32 @@
     function deleteTx(id) { data.txs = data.txs.filter(t => t.id !== id); sync(); }
 
     function render() {
-        // Selects
-        const accSel = document.getElementById('acc-select');
-        accSel.innerHTML = Object.keys(data.accounts).map(a => `<option value="${a}">${a}</option>`).join('');
-        
-        const catSel = document.getElementById('cat-select');
-        catSel.innerHTML = `<optgroup label="Income">${data.categories.inc.map(c => `<option value="${c}">${c}</option>`).join('')}</optgroup>
-                            <optgroup label="Expenses">${data.categories.exp.map(c => `<option value="${c}">${c}</option>`).join('')}</optgroup>`;
+        const accs = Object.keys(data.accounts);
+        const cats = [...data.categories.inc, ...data.categories.exp];
 
-        // Account Display & Math
+        // Populate all selects
+        ['acc-select', 'rec-acc'].forEach(id => {
+            document.getElementById(id).innerHTML = accs.map(a => `<option value="${a}">${a}</option>`).join('');
+        });
+        ['cat-select', 'rec-cat'].forEach(id => {
+            document.getElementById(id).innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
+        });
+
+        // Account Display
         const accDisplay = document.getElementById('accounts-display');
-        const accListDet = document.getElementById('acc-list-detailed');
         accDisplay.innerHTML = '';
-        accListDet.innerHTML = '';
-
-        for (const [accName, openingBal] of Object.entries(data.accounts)) {
-            const txTotal = data.txs.filter(t => t.acc === accName).reduce((sum, t) => sum + (t.type === 'inc' ? t.amt : -t.amt), 0);
-            const currentBal = openingBal + txTotal;
-            
-            accDisplay.innerHTML += `<div class="stat-card" style="background:var(--accent)">${accName}<br><strong>£${currentBal.toFixed(2)}</strong></div>`;
-            accListDet.innerHTML += `<div class="acc-item"><span>${accName} (Start: £${openingBal})</span></div>`;
+        for (const [name, open] of Object.entries(data.accounts)) {
+            const txTotal = data.txs.filter(t => t.acc === name).reduce((s, t) => s + (t.type === 'inc' ? t.amt : -t.amt), 0);
+            accDisplay.innerHTML += `<div class="stat-card" style="background:var(--accent)">${name}<br><strong>£${(open + txTotal).toFixed(2)}</strong></div>`;
         }
+
+        // Recurring List
+        document.getElementById('recurring-list').innerHTML = data.recurring.map(r => `
+            <div class="recurring-item">
+                <span>${r.desc} (£${r.amt})</span>
+                <button onclick="removeRecurring(${r.id})" style="color:red; background:none; padding:0;">Delete</button>
+            </div>
+        `).join('');
 
         // Transactions Table
         const list = document.getElementById('tx-list');
@@ -184,4 +226,3 @@
 </script>
 </body>
 </html>
-

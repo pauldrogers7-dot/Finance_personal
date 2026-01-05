@@ -2,27 +2,22 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>FinanceVault: v60 Core</title>
+    <title>FinanceVault: v65 Stable Full</title>
     <style>
-        :root { --primary: #2c3e50; --success: #27ae60; --accent: #3498db; }
+        :root { --primary: #2c3e50; --success: #27ae60; --accent: #3498db; --warning: #f39c12; }
         body { font-family: sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
-        
-        /* NAVIGATION */
-        .navbar { background: var(--primary); padding: 10px; display: flex; gap: 10px; }
-        .nav-link { color: white; background: rgba(255,255,255,0.1); border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        .nav-link:hover { background: var(--accent); }
-
-        /* TAB LOGIC */
+        .navbar { background: var(--primary); padding: 10px; display: flex; gap: 10px; overflow-x: auto; }
+        .nav-link { color: white; background: rgba(255,255,255,0.1); border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; white-space: nowrap; }
         .tab-content { display: none; padding: 20px; }
         .tab-content.active { display: block; }
-
-        /* UI ELEMENTS */
         .container { max-width: 1000px; margin: 0 auto; }
         .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
         .bal-grid { display: flex; gap: 10px; flex-wrap: wrap; }
         .bal-card { background: var(--accent); color: white; padding: 20px; border-radius: 8px; min-width: 150px; text-align: center; font-weight: bold; }
         input, select, button { width: 100%; padding: 12px; margin: 5px 0; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; font-size: 16px; }
         .btn-go { background: var(--success); color: white; border: none; cursor: pointer; font-weight: bold; }
+        .btn-edit { background: var(--accent); color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; width: auto; }
+        .due-banner { background: #fff3cd; border: 1px solid #ffeeba; padding: 15px; border-radius: 8px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         td, th { text-align: left; padding: 12px; border-bottom: 1px solid #eee; }
     </style>
@@ -33,17 +28,16 @@
     <button class="nav-link" onclick="openTab('tab-dash')">Dashboard</button>
     <button class="nav-link" onclick="openTab('tab-rec')">Recurring</button>
     <button class="nav-link" onclick="openTab('tab-cats')">Categories</button>
-    <button class="nav-link" onclick="openTab('tab-sett')">Settings</button>
+    <button class="nav-link" onclick="openTab('tab-sett')">Account Settings</button>
 </div>
 
 <div class="container">
-
     <div id="tab-dash" class="tab-content active">
+        <div id="alerts-area"></div>
         <div class="card">
             <h3>Bank Balances</h3>
             <div id="bal-list" class="bal-grid"></div>
         </div>
-
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
             <div class="card">
                 <h3>Add Bank Account</h3>
@@ -52,7 +46,7 @@
                 <button class="btn-go" onclick="addAccount()">Create Bank Card</button>
             </div>
             <div class="card">
-                <h3>Add Transaction</h3>
+                <h3>New Transaction</h3>
                 <input type="text" id="tx-desc" placeholder="Description">
                 <input type="number" id="tx-amt" placeholder="£">
                 <select id="tx-acc-sel"></select>
@@ -64,90 +58,95 @@
 
     <div id="tab-rec" class="tab-content">
         <div class="card">
-            <h3>Add Recurring Payment</h3>
+            <h3 id="rec-header">Add Recurring Payment</h3>
+            <input type="hidden" id="edit-rec-idx" value="-1">
             <input type="text" id="rec-desc" placeholder="Netflix/Rent">
             <input type="number" id="rec-amt" placeholder="£">
             <select id="rec-acc-sel"></select>
             <select id="rec-cat-sel"></select>
             <input type="date" id="rec-date">
-            <button class="btn-go" onclick="addRecurring()">Save Template</button>
+            <button class="btn-go" id="rec-btn" onclick="saveRecurring()">Save Template</button>
+            <button onclick="resetRecForm()" id="rec-cancel" style="display:none; background:#ccc; border:none; margin-top:5px;">Cancel Edit</button>
         </div>
         <div class="card">
-            <h3>Active List</h3>
-            <table id="rec-table"><thead><tr><th>Name</th><th>£</th><th>Date</th><th>Action</th></tr></thead><tbody></tbody></table>
+            <h3>Active Recurring Payments</h3>
+            <table id="rec-table"><thead><tr><th>Name</th><th>£</th><th>Next</th><th>Action</th></tr></thead><tbody></tbody></table>
         </div>
     </div>
 
     <div id="tab-cats" class="tab-content">
         <div class="card">
-            <h3>Category Manager</h3>
+            <h3 id="cat-header">Add Category</h3>
+            <input type="hidden" id="edit-cat-idx" value="-1">
             <input type="text" id="cat-name-in" placeholder="e.g. Shopping">
-            <select id="cat-type-in">
-                <option value="exp">Expense</option>
-                <option value="inc">Income</option>
-            </select>
-            <button class="btn-go" onclick="addCategory()">Add Category</button>
+            <select id="cat-type-in"><option value="exp">Expense</option><option value="inc">Income</option></select>
+            <button class="btn-go" id="cat-btn" onclick="saveCategory()">Add Category</button>
+            <button onclick="resetCatForm()" id="cat-cancel" style="display:none; background:#ccc; border:none; margin-top:5px;">Cancel Edit</button>
+        </div>
+        <div class="card">
+            <h3>Category Manager</h3>
             <table id="cat-table"><thead><tr><th>Name</th><th>Type</th><th>Action</th></tr></thead><tbody></tbody></table>
         </div>
     </div>
 
     <div id="tab-sett" class="tab-content">
         <div class="card">
-            <h3>Account Settings</h3>
-            <p>Manage your PIN directly here:</p>
+            <h3>Security</h3>
+            <p>Your PIN is used to secure the app upon opening.</p>
             <input type="password" id="pin-input" placeholder="New PIN Code">
             <button class="btn-go" onclick="savePin()">Update PIN</button>
         </div>
-        <button onclick="localStorage.clear(); location.reload();" style="background:red; color:white; border:none; padding:10px; cursor:pointer;">DEBUG: Wipe All Data</button>
+        <button onclick="localStorage.clear(); location.reload();" style="background:red; color:white; border:none; padding:15px; cursor:pointer; border-radius:8px;">NUCLEAR RESET (Wipe All Data)</button>
     </div>
-
 </div>
 
 <script>
-    // 1. DATA (Simplified)
-    const KEY = 'FINANCE_VAULT_V60';
+    const KEY = 'FINANCE_VAULT_V65';
     let data = JSON.parse(localStorage.getItem(KEY)) || {
-        banks: [],
-        txs: [],
-        recs: [],
+        banks: [], txs: [], recs: [],
         cats: [{name:"Salary", type:"inc"}, {name:"Rent", type:"exp"}],
         pin: "1234"
     };
 
-    function sync() {
-        localStorage.setItem(KEY, JSON.stringify(data));
-        refreshUI();
-    }
+    function sync() { localStorage.setItem(KEY, JSON.stringify(data)); refreshUI(); }
 
-    // 2. TAB SWITCHER (Basic)
     function openTab(id) {
         let tabs = document.getElementsByClassName('tab-content');
-        for (let i = 0; i < tabs.length; i++) {
-            tabs[i].classList.remove('active');
-        }
+        for (let i = 0; i < tabs.length; i++) tabs[i].classList.remove('active');
         document.getElementById(id).classList.add('active');
         refreshUI();
     }
 
-    // 3. LOGIC FUNCTIONS
+    // --- LOGIC ---
     function addAccount() {
         let n = document.getElementById('new-acc-name').value;
         let b = parseFloat(document.getElementById('new-acc-bal').value);
-        if(n && !isNaN(b)) {
-            data.banks.push({name: n, balance: b});
-            document.getElementById('new-acc-name').value = "";
-            document.getElementById('new-acc-bal').value = "";
-            sync();
+        if(n && !isNaN(b)) { data.banks.push({name: n, balance: b}); sync(); document.getElementById('new-acc-name').value=""; document.getElementById('new-acc-bal').value=""; }
+    }
+
+    function saveCategory() {
+        let n = document.getElementById('cat-name-in').value;
+        let t = document.getElementById('cat-type-in').value;
+        let idx = parseInt(document.getElementById('edit-cat-idx').value);
+        if(n) {
+            if(idx > -1) { data.cats[idx] = {name: n, type: t}; } 
+            else { data.cats.push({name: n, type: t}); }
+            resetCatForm(); sync();
         }
     }
 
-    function addCategory() {
-        let n = document.getElementById('cat-name-in').value;
-        let t = document.getElementById('cat-type-in').value;
-        if(n) {
-            data.cats.push({name: n, type: t});
-            document.getElementById('cat-name-in').value = "";
-            sync();
+    function saveRecurring() {
+        let d = document.getElementById('rec-desc').value;
+        let a = parseFloat(document.getElementById('rec-amt').value);
+        let acc = document.getElementById('rec-acc-sel').value;
+        let cat = document.getElementById('rec-cat-sel').value;
+        let date = document.getElementById('rec-date').value;
+        let idx = parseInt(document.getElementById('edit-rec-idx').value);
+        if(d && !isNaN(a) && date) {
+            let obj = {desc: d, amt: a, bank: acc, cat: cat, nextDate: date};
+            if(idx > -1) { data.recs[idx] = obj; } 
+            else { data.recs.push(obj); }
+            resetRecForm(); sync();
         }
     }
 
@@ -158,43 +157,48 @@
         let catName = document.getElementById('tx-cat-sel').value;
         if(d && !isNaN(a)) {
             let cat = data.cats.find(c => c.name === catName);
-            data.txs.push({desc: d, amt: a, bank: acc, type: cat.type});
+            data.txs.push({desc: d, amt: a, bank: acc, type: cat ? cat.type : 'exp', date: new Date().toISOString().split('T')[0]});
             sync();
         }
     }
 
-    function savePin() {
-        data.pin = document.getElementById('pin-input').value;
+    function postRecurring(idx) {
+        const r = data.recs[idx];
+        const cat = data.cats.find(c => c.name === r.cat);
+        data.txs.push({desc: r.desc, amt: r.amt, bank: r.bank, type: cat ? cat.type : 'exp', date: r.nextDate});
+        let d = new Date(r.nextDate); d.setMonth(d.getMonth() + 1);
+        r.nextDate = d.toISOString().split('T')[0];
         sync();
-        alert("PIN Saved in Settings!");
     }
 
-    // 4. UI REFRESH (Most Reliable Method)
-    function refreshUI() {
-        // Balances
-        let balDiv = document.getElementById('bal-list');
-        balDiv.innerHTML = "";
-        data.banks.forEach(bank => {
-            let net = data.txs.filter(t => t.bank === bank.name).reduce((s, t) => s + (t.type === 'inc' ? t.amt : -t.amt), 0);
-            balDiv.innerHTML += `<div class="bal-card">${bank.name}<br>£${(bank.balance + net).toFixed(2)}</div>`;
-        });
-
-        // Dropdowns
-        let bOpt = data.banks.map(b => `<option>${b.name}</option>`).join('');
-        let cOpt = data.cats.map(c => `<option>${c.name}</option>`).join('');
-        document.getElementById('tx-acc-sel').innerHTML = bOpt;
-        document.getElementById('rec-acc-sel').innerHTML = bOpt;
-        document.getElementById('tx-cat-sel').innerHTML = cOpt;
-        document.getElementById('rec-cat-sel').innerHTML = cOpt;
-
-        // Cat Table
-        document.querySelector('#cat-table tbody').innerHTML = data.cats.map((c, i) => `
-            <tr><td>${c.name}</td><td>${c.type}</td><td><button onclick="data.cats.splice(${i},1);sync()" style="background:none; color:red; border:none; cursor:pointer;">Delete</button></td></tr>
-        `).join('');
+    // --- UI HELPERS ---
+    function editCat(idx) {
+        let c = data.cats[idx];
+        document.getElementById('cat-name-in').value = c.name;
+        document.getElementById('cat-type-in').value = c.type;
+        document.getElementById('edit-cat-idx').value = idx;
+        document.getElementById('cat-header').innerText = "Edit Category";
+        document.getElementById('cat-btn').innerText = "Update Category";
+        document.getElementById('cat-cancel').style.display = "block";
     }
-
-    // Startup
-    window.onload = refreshUI;
-</script>
-</body>
-</html>
+    function resetCatForm() {
+        document.getElementById('cat-name-in').value = "";
+        document.getElementById('edit-cat-idx').value = "-1";
+        document.getElementById('cat-header').innerText = "Add Category";
+        document.getElementById('cat-btn').innerText = "Add Category";
+        document.getElementById('cat-cancel').style.display = "none";
+    }
+    function editRec(idx) {
+        let r = data.recs[idx];
+        document.getElementById('rec-desc').value = r.desc;
+        document.getElementById('rec-amt').value = r.amt;
+        document.getElementById('rec-acc-sel').value = r.bank;
+        document.getElementById('rec-cat-sel').value = r.cat;
+        document.getElementById('rec-date').value = r.nextDate;
+        document.getElementById('edit-rec-idx').value = idx;
+        document.getElementById('rec-header').innerText = "Edit Recurring Payment";
+        document.getElementById('rec-btn').innerText = "Update Template";
+        document.getElementById('rec-cancel').style.display = "block";
+    }
+    function resetRecForm() {
+        document.getElementById('rec

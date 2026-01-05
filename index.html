@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>FinanceVault: Professional Edition</title>
+    <title>FinanceVault: Shielded Edition</title>
     <style>
         :root { --primary: #2c3e50; --success: #27ae60; --danger: #e74c3c; --accent: #3498db; --warning: #f39c12; }
         body { font-family: system-ui, sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
-        nav { background: var(--primary); color: white; padding: 10px 20px; display: flex; gap: 10px; align-items: center; position: sticky; top: 0; z-index: 100; overflow-x: auto; }
-        .nav-btn { cursor: pointer; font-weight: bold; padding: 10px 15px; background: rgba(255,255,255,0.1); border-radius: 6px; border: none; color: white; white-space: nowrap; }
+        nav { background: var(--primary); color: white; padding: 10px; display: flex; gap: 10px; position: sticky; top: 0; z-index: 100; }
+        .nav-btn { cursor: pointer; font-weight: bold; padding: 10px 15px; background: rgba(255,255,255,0.1); border-radius: 6px; border: none; color: white; }
         .nav-btn.active { background: var(--accent); }
         .container { padding: 20px; max-width: 1000px; margin: 0 auto; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
@@ -15,12 +15,11 @@
         .page.active { display: block; }
         .bal-grid { display: flex; gap: 15px; flex-wrap: wrap; }
         .bal-card { background: var(--accent); color: white; padding: 15px; border-radius: 10px; min-width: 140px; text-align: center; }
-        input, select, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box; font-size: 16px; }
+        input, select, button { width: 100%; padding: 12px; margin: 5px 0; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box; }
         .btn-main { background: var(--success); color: white; border: none; font-weight: bold; cursor: pointer; }
         .due-banner { background: #fff3cd; border: 1px solid #ffeeba; padding: 15px; border-radius: 8px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
         table { width: 100%; border-collapse: collapse; }
         th, td { text-align: left; padding: 12px; border-bottom: 1px solid #eee; }
-        .edit-badge { background: #eee; padding: 2px 8px; border-radius: 4px; font-size: 0.8em; color: #666; margin-bottom: 5px; display: inline-block; }
     </style>
 </head>
 <body>
@@ -34,7 +33,7 @@
 
 <div class="container">
     
-    <div id="p-dash" class="page active">
+    <div id="pg-dash" class="page active">
         <div id="alerts"></div>
         <div class="card">
             <h3>Bank Balances</h3>
@@ -54,59 +53,98 @@
                 </form>
             </div>
             <div class="card">
-                <h3>Bank Setup</h3>
+                <h3>Add Bank Account</h3>
                 <form onsubmit="handleAcc(event)">
                     <input type="text" id="acc-name-in" placeholder="Bank Name" required>
                     <input type="number" id="acc-bal-in" placeholder="Balance £" step="0.01" required>
-                    <button type="submit" style="background: var(--primary); color:white; border:none; font-weight:bold;">Create Account</button>
+                    <button type="submit" style="background: var(--primary); color:white; border:none; font-weight:bold;">Create Bank</button>
                 </form>
             </div>
         </div>
-
         <div class="card">
             <h3>Recent History</h3>
-            <table id="hist-table">
-                <thead><tr><th>Date</th><th>Desc</th><th>Amt</th><th>Acc</th></tr></thead>
-                <tbody></tbody>
-            </table>
+            <table id="hist-table"><tbody></tbody></table>
         </div>
     </div>
 
-    <div id="p-rec" class="page">
+    <div id="pg-rec" class="page">
         <div class="card">
-            <h3 id="tpl-form-title">Add Recurring Payment</h3>
-            <div id="tpl-edit-indicator"></div>
+            <h3 id="tpl-head">Add Recurring Payment</h3>
             <form onsubmit="handleTpl(event)">
-                <input type="hidden" id="tpl-edit-id" value="">
-                <input type="text" id="tpl-desc" placeholder="Netflix/Rent" required>
+                <input type="hidden" id="tpl-id">
+                <input type="text" id="tpl-desc" placeholder="Name (e.g. Netflix)" required>
                 <input type="number" id="tpl-amt" placeholder="£" step="0.01" required>
                 <select id="tpl-acc-drop"></select>
                 <select id="tpl-cat-drop"></select>
                 <input type="date" id="tpl-date" required>
-                <button type="submit" id="tpl-btn" class="btn-main">Save Template</button>
-                <button type="button" onclick="resetTplForm()" id="tpl-cancel" style="display:none; background:#ccc; border:none; margin-top:0;">Cancel Edit</button>
+                <button type="submit" id="tpl-submit" class="btn-main">Save Recurring</button>
+                <button type="button" onclick="resetTpl()" id="tpl-cancel" style="display:none; background:#ccc;">Cancel Edit</button>
             </form>
         </div>
         <div class="card">
-            <h3>All Recurring Templates</h3>
-            <table id="tpl-table">
-                <thead><tr><th>Desc</th><th>Amount</th><th>Next Date</th><th>Actions</th></tr></thead>
-                <tbody></tbody>
-            </table>
+            <h3>Active Recurring List</h3>
+            <table id="tpl-table"><thead><tr><th>Desc</th><th>£</th><th>Date</th><th>Action</th></tr></thead><tbody></tbody></table>
         </div>
     </div>
 
-    <div id="p-cats" class="page">
+    <div id="pg-cats" class="page">
         <div class="card">
-            <h3 id="cat-form-title">Add Category</h3>
-            <div id="cat-edit-indicator"></div>
+            <h3 id="cat-head">Add Category</h3>
             <form onsubmit="handleCat(event)">
-                <input type="hidden" id="cat-edit-id" value="">
-                <input type="text" id="new-cat-name" placeholder="Category Name" required>
-                <select id="new-cat-type">
+                <input type="hidden" id="cat-id">
+                <input type="text" id="cat-name" placeholder="Name" required>
+                <select id="cat-type">
                     <option value="exp">Expense (-)</option>
                     <option value="inc">Income (+)</option>
                 </select>
-                <button type="submit" id="cat-btn" class="btn-main">Add Category</button>
-                <button type="button" onclick="resetCatForm()" id="cat-cancel" style="display:none; background:#ccc; border:none; margin-top:0;">Cancel Edit</button>
+                <button type="submit" id="cat-submit" class="btn-main">Save Category</button>
+                <button type="button" onclick="resetCat()" id="cat-cancel" style="display:none; background:#ccc;">Cancel</button>
             </form>
+        </div>
+        <div class="card">
+            <h3>All Categories</h3>
+            <table id="cat-table"><thead><tr><th>Name</th><th>Type</th><th>Action</th></tr></thead><tbody></tbody></table>
+        </div>
+    </div>
+
+    <div id="pg-sett" class="page">
+        <div class="card">
+            <h3>PIN Management</h3>
+            <input type="password" id="pin-new" placeholder="Enter New PIN">
+            <button onclick="handlePin()" class="btn-main">Update PIN</button>
+        </div>
+        <button onclick="if(confirm('Wipe everything?')){localStorage.clear();location.reload();}" style="background:var(--danger); color:white; border:none; padding:15px; border-radius:8px;">WIPE DATA</button>
+    </div>
+
+</div>
+
+<script>
+    const DB_KEY = 'FINANCE_STABLE_V45';
+    let db = JSON.parse(localStorage.getItem(DB_KEY)) || {
+        accounts: [], txs: [], templates: [], 
+        categories: [{id: 1, name: "Salary", type: "inc"}, {id: 2, name: "Rent", type: "exp"}],
+        pin: "1234"
+    };
+
+    function save() { localStorage.setItem(DB_KEY, JSON.stringify(db)); render(); }
+
+    function showPage(p) {
+        document.querySelectorAll('.page').forEach(pg => pg.classList.remove('active'));
+        document.querySelectorAll('.nav-btn').forEach(nb => nb.classList.remove('active'));
+        document.getElementById('pg-' + p).classList.add('active');
+        document.getElementById('btn-' + p).classList.add('active');
+        render();
+    }
+
+    // HANDLERS
+    function handleAcc(e) { e.preventDefault(); db.accounts.push({name: document.getElementById('acc-name-in').value, initial: parseFloat(document.getElementById('acc-bal-in').value)}); e.target.reset(); save(); }
+    
+    function handleCat(e) {
+        e.preventDefault();
+        const id = document.getElementById('cat-id').value;
+        const name = document.getElementById('cat-name').value;
+        const type = document.getElementById('cat-type').value;
+        if(id) { db.categories = db.categories.map(c => c.id == id ? {id: parseInt(id), name, type} : c); }
+        else { db.categories.push({id: Date.now(), name, type}); }
+        resetCat(); save();
+    }

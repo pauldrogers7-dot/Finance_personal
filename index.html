@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finance Monitor Pro</title>
+    <style>
+        :root { --primary: #2c3e50; --success: #27ae60; --danger: #e74c3c; --accent: #3498db; }
+        body { font-family: 'Segoe UI', sans-serif; max-width: 1100px; margin: 0 auto; background: #f0f2f5; padding: 20px; display: flex; flex-wrap: wrap; gap: 20px; }
+        
+        /* Auth Screen */
+        #lock-screen { position: fixed; inset: 0; background: var(--primary); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .lock-box { background: white; padding: 30px; border-radius: 12px; text-align: center; width: 300px; }
+        
+        /* Layout */
+        .card-panel { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .main-content { flex: 2; min-width: 350px; }
+        .side-content { flex: 1; min-width: 300px; display: flex; flex-direction: column; gap: 20px; }
+        
+        /* UI Components */
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .stat-card { padding: 15px; border-radius: 8px; color: white; text-align: center; }
+        form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding-bottom: 20px; border-bottom: 1px solid #eee; }
+        .full-width { grid-column: span 2; }
+        
+        table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #f0f0f0; }
+        
+        button { cursor: pointer; border: none; border-radius: 6px; padding: 10px; font-weight: bold; transition: 0.2s; }
+        .btn-add { background: var(--primary); color: white; }
+        .btn-export { background: var(--success); color: white; width: 100%; }
+        .btn-lock { background: var(--danger); color: white; width: 100%; }
+        
+        .report-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
+        .warning { color: var(--danger); font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div id="lock-screen">
+    <div class="lock-box">
+        <h2>Finance Vault</h2>
+        <input type="password" id="pin-entry" placeholder="Enter PIN" style="width:100%; padding:10px; margin: 10px 0;">
+        <button onclick="unlock()" class="btn-add" style="width:100%">Unlock</button>
+    </div>
+</div>
+
+<div class="main-content card-panel">
+    <h2>Financial Monitor</h2>
+    <div class="stats-grid">
+        <div class="stat-card" style="background:var(--success)">Income<br><span id="total-inc">$0</span></div>
+        <div class="stat-card" style="background:var(--danger)">Expenses<br><span id="total-exp">$0</span></div>
+        <div id="bal-card" class="stat-card" style="background:var(--accent)">Balance<br><span id="total-bal">$0</span></div>
+    </div>
+
+    <form id="entry-form">
+        <input type="text" id="desc" placeholder="Label" required>
+        <input type="number" id="amt" placeholder="Amount" step="0.01" required>
+        <input type="date" id="date" required>
+        <select id="cat">
+            <option value="Income">Income (+)</option>
+            <option value="Food">Food</option>
+            <option value="Housing">Housing</option>
+            <option value="Transport">Transport</option>
+            <option value="Leisure">Leisure</option>
+        </select>
+        <button type="submit" class="btn-add full-width">Save Transaction</button>
+    </form>
+
+    <div style="max-height: 400px; overflow-y: auto;">
+        <table>
+            <thead><tr><th>Date</th><th>Desc</th><th>Cat</th><th>Amt</th><th></th></tr></thead>
+            <tbody id="tx-list"></tbody>
+        </table>
+    </div>
+</div>
+
+<div class="side-content">
+    <div class="card-panel" style="background: var(--primary); color: white;">
+        <h3>Monthly Report</h3>
+        <p id="curr-month" style="opacity: 0.7"></p>
+        <div id="cat-breakdown"></div>
+    </div>
+
+    <div class="card-panel">
+        <h3>Tools & Backup</h3>
+        <button class="btn-export" onclick="exportCSV()">Export to Excel (CSV)</button>
+        <div style="margin-top:10px; display: flex; gap: 5px;">
+            <button onclick="backupJSON()" style="flex:1; background:#95a5a6; color:white;">Backup File</button>
+            <button onclick="document.getElementById('file-input').click()" style="flex:1; background:#95a5a6; color:white;">Restore File</button>
+        </div>
+        <input type="file" id="file-input" style="display:none" onchange="restoreJSON(event)">
+        <button class="btn-lock" style="margin-top:10px;" onclick="lock()">Lock Now</button>
+    </div>
+</div>
+
+<script>
+    const PIN = "588609"; // Edit your PIN here
+    const BUDGETS = { "Food": 400, "Transport": 150, "Leisure": 200, "Housing": 1200 };
+
+    function unlock() {
+        if(document.getElementById('pin-entry').value === PIN) {
+            sessionStorage.setItem('auth', 'ok');
+            document.getElementById('lock-screen').style.display = 'none';
+        }
+    }
+    function lock() { sessionStorage.removeItem('auth'); location.reload(); }
+    if(sessionStorage.getItem('auth') === 'ok') document.getElementById('lock-screen').style.display = 'none';
+
+    let txs = JSON.parse(localStorage.getItem('fin_data')) || [];
+    document.getElementById('date').valueAsDate = new Date();
+
+    document.getElementById('entry-form').onsubmit = (e) => {
+        e.preventDefault();
+        txs.push({
+            id: Date.now(),
+            date: document.getElementById('date').value,
+            desc: document.getElementById('desc').value,
+            amt: parseFloat(document.getElementById('amt').value),
+            cat: document.getElementById('cat').value
+        });
+        sync();
+        e.target.reset();
+        document.getElementById('date').valueAsDate = new Date();
+    };
+
+    function sync() {
+        localStorage.setItem('fin_data', JSON.stringify(txs));
+        render();
+    }
+
+    function deleteTx(id) { txs = txs.filter(t => t.id !== id); sync(); }
+
+    function exportCSV() {
+        let content = "Date,Description,Category,Amount\n" + txs.map(t => `${t.date},${t.desc},${t.cat},${t.amt}`).join("\n");
+        let link = document.createElement('a');
+        link.href = 'data:text/csv;charset=utf-8,' + encodeURI(content);
+        link.download = 'finance_export.csv';
+        link.click();
+    }
+
+    function backupJSON() {
+        let blob = new Blob([JSON.stringify(txs)], {type: 'application/json'});
+        let a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'finance_backup.json';
+        a.click();
+    }
+
+    function restoreJSON(e) {
+        let reader = new FileReader();
+        reader.onload = (event) => {
+            txs = JSON.parse(event.target.result);
+            sync();
+        };
+        reader.readAsText(e.target.files[0]);
+    }
+
+    function render() {
+        const list = document.getElementById('tx-list');
+        list.innerHTML = '';
+        let sums = { inc: 0, exp: 0 }, catTotals = {};
+        const mo = new Date().toISOString().slice(0, 7);
+        document.getElementById('curr-month').innerText = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
+
+        txs.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(t => {
+            const row = list.insertRow();
+            row.innerHTML = `<td>${t.date}</td><td>${t.desc}</td><td>${t.cat}</td><td>$${t.amt.toFixed(2)}</td>
+                             <td><button onclick="deleteTx(${t.id})" style="color:var(--danger); background:none;">&times;</button></td>`;
+            
+            if(t.cat === 'Income') sums.inc += t.amt;
+            else {
+                sums.exp += t.amt;
+                if(t.date.startsWith(mo)) catTotals[t.cat] = (catTotals[t.cat] || 0) + t.amt;
+            }
+        });
+
+        document.getElementById('total-inc').innerText = `$${sums.inc.toFixed(2)}`;
+        document.getElementById('total-exp').innerText = `$${sums.exp.toFixed(2)}`;
+        document.getElementById('total-bal').innerText = `$${(sums.inc - sums.exp).toFixed(2)}`;
+
+        const report = document.getElementById('cat-breakdown');
+        report.innerHTML = '';
+        for (let [c, v] of Object.entries(catTotals)) {
+            let lim = BUDGETS[c] || 0;
+            report.innerHTML += `<div class="report-item ${lim && v > lim ? 'warning' : ''}">
+                <span>${c}</span><span>$${v.toFixed(0)} / $${lim}</span></div>`;
+        }
+    }
+    render();
+</script>
+</body>
+</html>

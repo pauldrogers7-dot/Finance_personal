@@ -123,4 +123,142 @@
 
 <script>
     const PIN = "588609";
-    function unlock() { if(document.getElementById('pin-entry').value === PIN) { sessionStorage.setItem('auth', 'ok'); document.getElementById
+    function unlock() { if(document.getElementById('pin-entry').value === PIN) { sessionStorage.setItem('auth', 'ok'); document.getElementById('lock-screen').style.display = 'none'; render(); } }
+    function lock() { sessionStorage.removeItem('auth'); location.reload(); }
+    if(sessionStorage.getItem('auth') === 'ok') document.getElementById('lock-screen').style.display = 'none';
+
+    let data = JSON.parse(localStorage.getItem('fin_v8')) || {
+        accounts: { "Main Bank": 0 },
+        categories: { inc: ["Salary"], exp: ["Rent", "Food", "Leisure", "Utilities", "Bills"] },
+        txs: [],
+        templates: [] 
+    };
+
+    function sync() { localStorage.setItem('fin_v8', JSON.stringify(data)); render(); }
+
+    function upsertAccount(e) {
+        e.preventDefault();
+        data.accounts[document.getElementById('new-acc-name').value] = parseFloat(document.getElementById('new-acc-open').value);
+        e.target.reset(); sync();
+    }
+
+    function addTemplate(e) {
+        e.preventDefault();
+        data.templates.push({
+            id: Date.now(),
+            desc: document.getElementById('rec-desc').value,
+            amt: parseFloat(document.getElementById('rec-amt').value),
+            startDate: document.getElementById('rec-start').value,
+            freq: parseInt(document.getElementById('rec-freq').value),
+            acc: document.getElementById('rec-acc').value,
+            cat: document.getElementById('rec-cat').value
+        });
+        e.target.reset(); sync();
+    }
+
+    // --- EDIT LOGIC ---
+    function openEdit(id) {
+        const t = data.templates.find(x => x.id === id);
+        document.getElementById('edit-id').value = t.id;
+        document.getElementById('edit-desc').value = t.desc;
+        document.getElementById('edit-amt').value = t.amt;
+        document.getElementById('edit-start').value = t.startDate;
+        document.getElementById('edit-freq').value = t.freq;
+        document.getElementById('edit-modal').style.display = 'flex';
+    }
+
+    function closeEdit() { document.getElementById('edit-modal').style.display = 'none'; }
+
+    function saveEdit(e) {
+        e.preventDefault();
+        const id = parseInt(document.getElementById('edit-id').value);
+        const t = data.templates.find(x => x.id === id);
+        t.desc = document.getElementById('edit-desc').value;
+        t.amt = parseFloat(document.getElementById('edit-amt').value);
+        t.startDate = document.getElementById('edit-start').value;
+        t.freq = parseInt(document.getElementById('edit-freq').value);
+        closeEdit(); sync();
+    }
+
+    function postRecurring(templateId, dateStr) {
+        const temp = data.templates.find(t => t.id === templateId);
+        if (temp) {
+            data.txs.push({
+                id: Date.now() + Math.random(),
+                date: dateStr,
+                acc: temp.acc,
+                desc: temp.desc,
+                amt: temp.amt,
+                cat: temp.cat,
+                type: data.categories.inc.includes(temp.cat) ? 'inc' : 'exp'
+            });
+            let next = new Date(dateStr);
+            next.setDate(next.getDate() + temp.freq);
+            temp.startDate = next.toISOString().slice(0, 10);
+            sync();
+        }
+    }
+
+    function render() {
+        const accs = Object.keys(data.accounts);
+        const today = new Date(); today.setHours(0,0,0,0);
+
+        // Update Dropdowns
+        document.getElementById('rec-acc').innerHTML = accs.map(a => `<option value="${a}">${a}</option>`).join('');
+        document.getElementById('rec-cat').innerHTML = [...data.categories.inc, ...data.categories.exp].map(c => `<option value="${c}">${c}</option>`).join('');
+
+        // Balances
+        const accDisplay = document.getElementById('accounts-display');
+        accDisplay.innerHTML = '';
+        accs.forEach(name => {
+            const txTotal = data.txs.filter(t => t.acc === name).reduce((s, t) => s + (t.type === 'inc' ? t.amt : -t.amt), 0);
+            accDisplay.innerHTML += `<div class="stat-card" style="background:var(--accent)">${name}<br><strong>£${(data.accounts[name] + txTotal).toFixed(2)}</strong></div>`;
+        });
+
+        // Due List
+        const dueList = document.getElementById('due-now-list');
+        dueList.innerHTML = '';
+        data.templates.forEach(t => {
+            if (new Date(t.startDate) <= today) {
+                dueList.innerHTML += `<div class="due-item">
+                    <span><strong>${t.desc}</strong><br>Due: ${t.startDate} (£${t.amt})</span>
+                    <button onclick="postRecurring(${t.id}, '${t.startDate}')" class="btn-post">Post Now</button>
+                </div>`;
+            }
+        });
+        if (!dueList.innerHTML) dueList.innerHTML = '<p style="color:green; font-size:0.85em;">✓ All caught up!</p>';
+
+        // Template Management List
+        document.getElementById('template-list').innerHTML = data.templates.map(t => `
+            <div class="template-item">
+                <div style="display:flex; justify-content:space-between; align-items:start;">
+                    <span><strong>${t.desc}</strong><br>£${t.amt} | Next: ${t.startDate}</span>
+                    <div>
+                        <button onclick="openEdit(${t.id})" class="btn-edit">Edit</button>
+                        <button onclick="data.templates=data.templates.filter(x=>x.id!==${t.id}); sync();" style="color:red; background:none;">&times;</button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+        // History
+        const list = document.getElementById('tx-list');
+        list.innerHTML = '';
+        data.txs.sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 10).forEach(t => {
+            const row = list.insertRow();
+            row.innerHTML = `<td>${t.date}</td><td>${t.acc}</td><td>${t.desc}</td>
+                             <td style="color:${t.type==='inc'?'green':'red'}">£${t.amt.toFixed(2)}</td>
+                             <td><button onclick="data.txs=data.txs.filter(x=>x.id!==${t.id}); sync();" style="color:red; background:none;">&times;</button></td>`;
+        });
+    }
+
+    function exportCSV() {
+        let csv = "Date,Account,Description,Category,Amount,Type\n" + data.txs.map(t => `${t.date},${t.acc},${t.desc},${t.cat},${t.amt},${t.type}`).join("\n");
+        window.open('data:text/csv;charset=utf-8,' + encodeURI(csv));
+    }
+
+    document.getElementById('rec-start').valueAsDate = new Date();
+    render();
+</script>
+</body>
+</html>

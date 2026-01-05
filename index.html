@@ -3,6 +3,227 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finance Pro: Final Fixed (£)</title>
+    <style>
+        :root { --primary: #2c3e50; --success: #27ae60; --danger: #e74c3c; --accent: #3498db; --warning: #f39c12; }
+        body { font-family: 'Segoe UI', sans-serif; max-width: 1400px; margin: 0 auto; background: #f0f2f5; padding: 20px; display: flex; flex-wrap: wrap; gap: 20px; }
+        #lock-screen { position: fixed; inset: 0; background: var(--primary); display: flex; justify-content: center; align-items: center; z-index: 2000; }
+        .modal-box { background: white; padding: 30px; border-radius: 12px; width: 340px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+        .card-panel { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .main-content { flex: 2; min-width: 450px; }
+        .side-content { flex: 1; min-width: 350px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 20px; }
+        .stat-card { padding: 15px; border-radius: 8px; color: white; text-align: center; }
+        form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .full-width { grid-column: span 2; }
+        input, select { padding: 10px; border: 1px solid #ccc; border-radius: 6px; }
+        button { cursor: pointer; border: none; border-radius: 6px; padding: 10px; font-weight: bold; }
+        .btn-add { background: var(--primary); color: white; }
+        .btn-post { background: var(--success); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #f0f0f0; }
+    </style>
+</head>
+<body>
+
+<div id="lock-screen">
+    <div class="modal-box">
+        <h2 style="margin:0 0 10px 0;">Finance Vault</h2>
+        <input type="password" id="pin-entry" placeholder="Enter PIN" style="width:90%; margin: 10px 0; font-size: 1.5em; text-align: center;" autofocus>
+        <button id="unlock-btn" class="btn-add" style="width:100%; padding: 15px; font-size: 1.1em;">Unlock Dashboard</button>
+        
+        <div style="margin-top: 20px; font-size: 0.75em; color: #777;">
+            <p>Default: 1234</p>
+            <p style="text-decoration: underline; cursor: pointer; color: var(--danger);" onclick="emergencyReset()">Pin still not working? Reset App</p>
+        </div>
+    </div>
+</div>
+
+<div class="main-content">
+    <div class="card-panel">
+        <h2>Live Balances</h2>
+        <div id="accounts-display" class="stats-grid"></div>
+    </div>
+
+    <div class="card-panel">
+        <h3>Recent History</h3>
+        <table>
+            <thead><tr><th>Date</th><th>Acc</th><th>Desc</th><th>Amt</th><th></th></tr></thead>
+            <tbody id="tx-list"></tbody>
+        </table>
+    </div>
+</div>
+
+<div class="side-content">
+    <div class="card-panel" style="border-top: 5px solid var(--danger);">
+        <h3>Account Settings</h3>
+        <p style="font-size: 0.8em;">Change PIN directly here:</p>
+        <form onsubmit="updatePin(event)">
+            <input type="password" id="new-pin" placeholder="New PIN" required>
+            <input type="password" id="confirm-pin" placeholder="Confirm PIN" required>
+            <button class="btn-danger full-width">Save New PIN</button>
+        </form>
+        <hr>
+        <p style="font-size: 0.7em;">Recovery Key: <span id="recovery-display" style="font-weight:bold;"></span></p>
+    </div>
+
+    <div class="card-panel" style="background: #f8f9fa;">
+        <h3>Add Transaction</h3>
+        <form onsubmit="addTx(event)">
+            <input type="text" id="tx-desc" placeholder="Description" required class="full-width">
+            <input type="number" id="tx-amt" placeholder="Amount £" step="0.01" required>
+            <input type="date" id="tx-date" required>
+            <select id="tx-acc"></select>
+            <select id="tx-cat"></select>
+            <button class="btn-post full-width">Post & Update Balance</button>
+        </form>
+    </div>
+
+    <div class="card-panel">
+        <h3>Manage Accounts</h3>
+        <form onsubmit="addAcc(event)">
+            <input type="text" id="acc-name" placeholder="Bank Name" required>
+            <input type="number" id="acc-bal" placeholder="Opening Bal £" step="0.01" required>
+            <button class="btn-add full-width">Add Account</button>
+        </form>
+    </div>
+
+    <div class="card-panel">
+        <button onclick="lockApp()" style="width:100%; background:var(--primary); color:white;">Manual Lock</button>
+    </div>
+</div>
+
+<script>
+    // --- 1. THE BRAIN (LOADED FIRST) ---
+    const STORAGE_NAME = 'Finance_Final_v2026';
+    
+    let db = JSON.parse(localStorage.getItem(STORAGE_NAME)) || {
+        config: { pin: "1234", recovery: "KEY-" + Math.random().toString(36).substr(2,6).toUpperCase() },
+        accounts: { "Main Bank": 0 },
+        txs: []
+    };
+
+    // --- 2. THE UNLOCK FUNCTION (EXPLICITLY DEFINED) ---
+    function unlockDashboard() {
+        console.log("Checking PIN...");
+        const input = document.getElementById('pin-entry').value;
+        if(input === db.config.pin || input === db.config.recovery) {
+            sessionStorage.setItem('authorized', 'true');
+            document.getElementById('lock-screen').style.display = 'none';
+            renderUI();
+        } else {
+            alert("Incorrect PIN. Try 1234.");
+        }
+    }
+
+    // Attach event listener via JavaScript instead of just HTML
+    document.getElementById('unlock-btn').addEventListener('click', unlockDashboard);
+
+    function emergencyReset() {
+        if(confirm("This will clear your PIN and data. Continue?")) {
+            localStorage.clear();
+            location.reload();
+        }
+    }
+
+    // --- 3. APP FUNCTIONS ---
+    function saveAndRefresh() {
+        localStorage.setItem(STORAGE_NAME, JSON.stringify(db));
+        renderUI();
+    }
+
+    function updatePin(e) {
+        e.preventDefault();
+        const p1 = document.getElementById('new-pin').value;
+        const p2 = document.getElementById('confirm-pin').value;
+        if(p1 === p2) {
+            db.config.pin = p1;
+            saveAndRefresh();
+            alert("PIN Updated Successfully!");
+            e.target.reset();
+        } else {
+            alert("PINs don't match!");
+        }
+    }
+
+    function addTx(e) {
+        e.preventDefault();
+        db.txs.push({
+            id: Date.now(),
+            desc: document.getElementById('tx-desc').value,
+            amt: parseFloat(document.getElementById('tx-amt').value),
+            date: document.getElementById('tx-date').value,
+            acc: document.getElementById('tx-acc').value,
+            cat: document.getElementById('tx-cat').value
+        });
+        e.target.reset();
+        document.getElementById('tx-date').valueAsDate = new Date();
+        saveAndRefresh();
+    }
+
+    function addAcc(e) {
+        e.preventDefault();
+        db.accounts[document.getElementById('acc-name').value] = parseFloat(document.getElementById('acc-bal').value);
+        e.target.reset();
+        saveAndRefresh();
+    }
+
+    function lockApp() {
+        sessionStorage.removeItem('authorized');
+        location.reload();
+    }
+
+    function renderUI() {
+        if(sessionStorage.getItem('authorized') !== 'true') return;
+
+        const accList = Object.keys(db.accounts);
+        document.getElementById('recovery-display').innerText = db.config.recovery;
+
+        // Selects
+        document.getElementById('tx-acc').innerHTML = accList.map(a => `<option>${a}</option>`).join('');
+        document.getElementById('tx-cat').innerHTML = ["Income", "Bills", "Food", "Leisure"].map(c => `<option>${c}</option>`).join('');
+
+        // Balances
+        const balDiv = document.getElementById('accounts-display');
+        balDiv.innerHTML = '';
+        accList.forEach(name => {
+            const spent = db.txs.filter(t => t.acc === name).reduce((s, t) => s + (t.cat === 'Income' ? t.amt : -t.amt), 0);
+            balDiv.innerHTML += `<div class="stat-card" style="background:var(--accent)">${name}<br><strong>£${(db.accounts[name] + spent).toFixed(2)}</strong></div>`;
+        });
+
+        // History
+        const list = document.getElementById('tx-list');
+        list.innerHTML = '';
+        db.txs.sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0,10).forEach(t => {
+            const row = list.insertRow();
+            row.innerHTML = `<td>${t.date}</td><td>${t.acc}</td><td>${t.desc}</td>
+                             <td style="color:${t.cat==='Income'?'green':'red'}">£${t.amt.toFixed(2)}</td>
+                             <td><button onclick="deleteTx(${t.id})" style="color:red; background:none;">&times;</button></td>`;
+        });
+    }
+
+    function deleteTx(id) {
+        db.txs = db.txs.filter(t => t.id !== id);
+        saveAndRefresh();
+    }
+
+    // --- 4. STARTUP ---
+    window.onload = function() {
+        console.log("SYSTEM READY");
+        if(sessionStorage.getItem('authorized') === 'true') {
+            document.getElementById('lock-screen').style.display = 'none';
+            renderUI();
+        }
+        document.getElementById('tx-date').valueAsDate = new Date();
+    };
+</script>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Finance Pro: Live Balances (£)</title>
     <style>
         :root { --primary: #2c3e50; --success: #27ae60; --danger: #e74c3c; --accent: #3498db; --warning: #f39c12; }
@@ -190,3 +411,4 @@
                 amt: temp.amt,
                 cat: temp.cat,
                 type: data.categories.inc.includes(temp.cat) ? 'inc' : 'exp'
+

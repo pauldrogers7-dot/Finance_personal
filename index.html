@@ -2,13 +2,18 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>FinanceVault: Professional Build</title>
+    <title>FinanceVault: Secure Edition</title>
     <style>
         :root { --primary: #2c3e50; --success: #27ae60; --danger: #e74c3c; --accent: #3498db; }
         body { font-family: system-ui, sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
+        
+        /* LOCK SCREEN STYLE */
+        #lock-screen { position: fixed; inset: 0; background: var(--primary); color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; }
+        .pin-box { background: white; padding: 30px; border-radius: 15px; display: flex; flex-direction: column; gap: 15px; width: 300px; }
+        
+        /* APP STYLE */
         nav { background: var(--primary); color: white; padding: 15px; display: flex; gap: 20px; }
         .nav-btn { cursor: pointer; font-weight: bold; padding: 10px 15px; background: rgba(255,255,255,0.1); border-radius: 6px; border: none; color: white; }
-        .nav-btn:hover { background: var(--accent); }
         .container { padding: 20px; max-width: 1000px; margin: 0 auto; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
         .page { display: none; }
@@ -16,81 +21,91 @@
         .bal-grid { display: flex; gap: 15px; flex-wrap: wrap; }
         .bal-card { background: var(--accent); color: white; padding: 20px; border-radius: 10px; min-width: 150px; text-align: center; }
         input, select, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box; font-size: 16px; }
-        .btn-main { background: var(--success); color: white; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .btn-main:active { transform: scale(0.98); }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .btn-main { background: var(--success); color: white; border: none; font-weight: bold; cursor: pointer; }
+        table { width: 100%; border-collapse: collapse; }
         th, td { text-align: left; padding: 12px; border-bottom: 1px solid #eee; }
     </style>
 </head>
 <body>
 
-<nav>
-    <button id="nav-dash" class="nav-btn">Dashboard</button>
-    <button id="nav-sett" class="nav-btn">Account Settings</button>
-</nav>
-
-<div class="container">
-    <div id="p-dash" class="page active">
-        <div class="card">
-            <h3>Bank Balances</h3>
-            <div id="render-bal" class="bal-grid"></div>
-        </div>
-        
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-            <div class="card">
-                <h3>Record Payment</h3>
-                <input type="text" id="tx-desc" placeholder="Description">
-                <input type="number" id="tx-amt" placeholder="Amount £" step="0.01">
-                <select id="tx-acc-drop"></select>
-                <select id="tx-cat-drop"></select>
-                <input type="date" id="tx-date">
-                <button id="btn-tx-submit" class="btn-main">Post Transaction</button>
-            </div>
-            <div class="card">
-                <h3>Add Bank Account</h3>
-                <input type="text" id="acc-name-in" placeholder="Bank Name (e.g. Lloyds)">
-                <input type="number" id="acc-bal-in" placeholder="Balance £" step="0.01">
-                <button id="btn-acc-submit" class="btn-main" style="background: var(--primary);">Create Account</button>
-            </div>
-        </div>
-
-        <div class="card">
-            <h3>History</h3>
-            <table id="hist-table">
-                <thead><tr><th>Date</th><th>Desc</th><th>Amt</th><th>Acc</th></tr></thead>
-                <tbody></tbody>
-            </table>
-        </div>
+<div id="lock-screen">
+    <h2 style="margin-bottom: 20px;">FinanceVault Locked</h2>
+    <div class="pin-box">
+        <input type="password" id="pin-entry" placeholder="Enter PIN" style="text-align: center; font-size: 24px; color: #333;">
+        <button id="btn-unlock" class="btn-main">Unlock System</button>
+        <p id="lock-msg" style="color: red; text-align: center; font-size: 14px;"></p>
     </div>
+</div>
 
-    <div id="p-sett" class="page">
-        <div class="card">
-            <h3>PIN Management</h3>
-            <input type="password" id="new-pin" placeholder="Set New PIN Code">
-            <button id="btn-pin-submit" class="btn-main">Update PIN</button>
+<div id="app-content" style="display: none;">
+    <nav>
+        <button id="nav-dash" class="nav-btn">Dashboard</button>
+        <button id="nav-sett" class="nav-btn">Account Settings</button>
+    </nav>
+
+    <div class="container">
+        <div id="p-dash" class="page active">
+            <div class="card">
+                <h3>Bank Balances</h3>
+                <div id="render-bal" class="bal-grid"></div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div class="card">
+                    <h3>Record Payment</h3>
+                    <input type="text" id="tx-desc" placeholder="Description">
+                    <input type="number" id="tx-amt" placeholder="Amount £" step="0.01">
+                    <select id="tx-acc-drop"></select>
+                    <select id="tx-cat-drop"></select>
+                    <input type="date" id="tx-date">
+                    <button id="btn-tx-submit" class="btn-main">Post Transaction</button>
+                </div>
+                <div class="card">
+                    <h3>Add Bank Account</h3>
+                    <input type="text" id="acc-name-in" placeholder="Bank Name">
+                    <input type="number" id="acc-bal-in" placeholder="Balance £" step="0.01">
+                    <button id="btn-acc-submit" class="btn-main" style="background: var(--primary);">Create Account</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>History</h3>
+                <table id="hist-table">
+                    <thead><tr><th>Date</th><th>Desc</th><th>Amt</th><th>Acc</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
         </div>
-        <div class="card">
-            <h3>Categories</h3>
-            <table id="cat-table">
-                <thead><tr><th>Name</th><th>Type</th><th>Action</th></tr></thead>
-                <tbody></tbody>
-            </table>
-            <hr>
-            <input type="text" id="new-cat-name" placeholder="Category Name">
-            <select id="new-cat-type">
-                <option value="exp">Expense (-)</option>
-                <option value="inc">Income (+)</option>
-            </select>
-            <button id="btn-cat-submit" class="btn-main">Add Category</button>
+
+        <div id="p-sett" class="page">
+            <div class="card">
+                <h3>PIN Management</h3>
+                <p style="font-size: 14px; color: #666;">Set a new code to secure your account.</p>
+                <input type="password" id="new-pin" placeholder="Enter New PIN Code">
+                <button id="btn-pin-submit" class="btn-main">Update PIN</button>
+            </div>
+            <div class="card">
+                <h3>Categories</h3>
+                <table id="cat-table">
+                    <thead><tr><th>Name</th><th>Type</th><th>Action</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+                <hr>
+                <input type="text" id="new-cat-name" placeholder="Category Name">
+                <select id="new-cat-type">
+                    <option value="exp">Expense (-)</option>
+                    <option value="inc">Income (+)</option>
+                </select>
+                <button id="btn-cat-submit" class="btn-main">Add Category</button>
+            </div>
+            <button id="btn-wipe" style="background:var(--danger); color:white; border:none; padding:15px; cursor:pointer; border-radius:8px;">NUCLEAR RESET</button>
         </div>
-        <button id="btn-wipe" style="background:var(--danger); color:white; border:none; padding:15px; cursor:pointer; border-radius:8px;">NUCLEAR RESET (Delete Everything)</button>
     </div>
 </div>
 
 <script>
-    const STORAGE_KEY = 'FINANCE_STABLE_V25';
+    const STORAGE_KEY = 'FINANCE_STABLE_V30';
 
-    // 1. DATA INITIALIZATION
     let state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
         accounts: [],
         txs: [],
@@ -103,118 +118,97 @@
         render();
     }
 
-    // 2. RENDERING LOGIC
     function render() {
         // Balances
         const balBox = document.getElementById('render-bal');
-        balBox.innerHTML = state.accounts.length === 0 ? "<em>No accounts yet. Add one below.</em>" : "";
+        balBox.innerHTML = state.accounts.length === 0 ? "<em>Add a bank account to see balances.</em>" : "";
         state.accounts.forEach(acc => {
             const net = state.txs.filter(t => t.acc === acc.name).reduce((s, t) => s + (t.type === 'inc' ? t.amt : -t.amt), 0);
             balBox.innerHTML += `<div class="bal-card">${acc.name}<br><strong>£${(acc.initial + net).toFixed(2)}</strong></div>`;
         });
 
         // Dropdowns
-        const accDrop = document.getElementById('tx-acc-drop');
-        const catDrop = document.getElementById('tx-cat-drop');
-        accDrop.innerHTML = state.accounts.map(a => `<option value="${a.name}">${a.name}</option>`).join('');
-        catDrop.innerHTML = state.categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+        document.getElementById('tx-acc-drop').innerHTML = state.accounts.map(a => `<option value="${a.name}">${a.name}</option>`).join('');
+        document.getElementById('tx-cat-drop').innerHTML = state.categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
 
-        // History Table
-        const histBody = document.querySelector('#hist-table tbody');
-        histBody.innerHTML = state.txs.slice().reverse().slice(0, 5).map(t => `
+        // Tables
+        document.querySelector('#hist-table tbody').innerHTML = state.txs.slice().reverse().slice(0, 5).map(t => `
             <tr><td>${t.date}</td><td>${t.desc}</td><td style="color:${t.type==='inc'?'green':'red'}">£${t.amt.toFixed(2)}</td><td>${t.acc}</td></tr>
         `).join('');
 
-        // Category Table
-        const catBody = document.querySelector('#cat-table tbody');
-        catBody.innerHTML = state.categories.map((c, i) => `
-            <tr><td>${c.name}</td><td>${c.type}</td><td><button class="del-btn" data-index="${i}" style="background:none; border:none; color:red; cursor:pointer; font-weight:bold;">Delete</button></td></tr>
+        document.querySelector('#cat-table tbody').innerHTML = state.categories.map((c, i) => `
+            <tr><td>${c.name}</td><td>${c.type}</td><td><button class="del-btn" data-index="${i}" style="color:red; cursor:pointer; background:none; border:none;">&times; Delete</button></td></tr>
         `).join('');
 
-        // Add delete listeners to buttons
         document.querySelectorAll('.del-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                const idx = e.target.getAttribute('data-index');
-                state.categories.splice(idx, 1);
+                state.categories.splice(e.target.getAttribute('data-index'), 1);
                 saveAndRefresh();
             });
         });
     }
 
-    // 3. PAGE NAVIGATION
-    function switchPage(pageId) {
-        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        document.getElementById(pageId).classList.add('active');
-        render();
-    }
-
-    // 4. EVENT LISTENERS (The Fix for "Doing Nothing")
+    // EVENT LISTENERS
     document.addEventListener('DOMContentLoaded', () => {
-        // Nav Buttons
-        document.getElementById('nav-dash').addEventListener('click', () => switchPage('p-dash'));
-        document.getElementById('nav-sett').addEventListener('click', () => switchPage('p-sett'));
+        // Unlock Logic
+        document.getElementById('btn-unlock').addEventListener('click', () => {
+            const val = document.getElementById('pin-entry').value;
+            if (val === state.pin) {
+                document.getElementById('lock-screen').style.display = 'none';
+                document.getElementById('app-content').style.display = 'block';
+                render();
+            } else {
+                document.getElementById('lock-msg').innerText = "Incorrect PIN. Try again.";
+                document.getElementById('pin-entry').value = "";
+            }
+        });
 
-        // Account Create
+        // Nav
+        document.getElementById('nav-dash').addEventListener('click', () => {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById('p-dash').classList.add('active');
+        });
+        document.getElementById('nav-sett').addEventListener('click', () => {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById('p-sett').classList.add('active');
+        });
+
+        // Actions
         document.getElementById('btn-acc-submit').addEventListener('click', () => {
             const name = document.getElementById('acc-name-in').value;
             const bal = parseFloat(document.getElementById('acc-bal-in').value);
             if (name && !isNaN(bal)) {
                 state.accounts.push({ name, initial: bal });
-                document.getElementById('acc-name-in').value = "";
-                document.getElementById('acc-bal-in').value = "";
+                document.getElementById('acc-name-in').value = ""; document.getElementById('acc-bal-in').value = "";
                 saveAndRefresh();
             }
         });
 
-        // Category Create
-        document.getElementById('btn-cat-submit').addEventListener('click', () => {
-            const name = document.getElementById('new-cat-name').value;
-            const type = document.getElementById('new-cat-type').value;
-            if (name) {
-                state.categories.push({ name, type });
-                document.getElementById('new-cat-name').value = "";
-                saveAndRefresh();
-            }
-        });
-
-        // Transaction Create
         document.getElementById('btn-tx-submit').addEventListener('click', () => {
             const desc = document.getElementById('tx-desc').value;
             const amt = parseFloat(document.getElementById('tx-amt').value);
             const acc = document.getElementById('tx-acc-drop').value;
-            const catName = document.getElementById('tx-cat-drop').value;
-            const date = document.getElementById('tx-date').value;
-            if (desc && !isNaN(amt) && acc) {
-                const cat = state.categories.find(c => c.name === catName);
-                state.txs.push({ id: Date.now(), desc, amt, acc, date, type: cat ? cat.type : 'exp' });
-                document.getElementById('tx-desc').value = "";
-                document.getElementById('tx-amt').value = "";
+            const cat = state.categories.find(c => c.name === document.getElementById('tx-cat-drop').value);
+            if (desc && !isNaN(amt)) {
+                state.txs.push({ id: Date.now(), desc, amt, acc, date: document.getElementById('tx-date').value, type: cat ? cat.type : 'exp' });
+                document.getElementById('tx-desc').value = ""; document.getElementById('tx-amt').value = "";
                 saveAndRefresh();
             }
         });
 
-        // PIN Update
         document.getElementById('btn-pin-submit').addEventListener('click', () => {
             const val = document.getElementById('new-pin').value;
             if (val) {
                 state.pin = val;
                 saveAndRefresh();
-                alert("PIN Updated from Account Settings!");
+                alert("New PIN saved! Use this code next time you open the app.");
                 document.getElementById('new-pin').value = "";
             }
         });
 
-        // Reset
-        document.getElementById('btn-wipe').addEventListener('click', () => {
-            if (confirm("Permanently delete all data?")) {
-                localStorage.clear();
-                location.reload();
-            }
-        });
+        document.getElementById('btn-wipe').addEventListener('click', () => { if(confirm("Wipe all?")) { localStorage.clear(); location.reload(); } });
 
-        // Initial Setup
         document.getElementById('tx-date').valueAsDate = new Date();
-        render();
     });
 </script>
 </body>

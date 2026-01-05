@@ -2,88 +2,66 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>FinanceVault: v135 Safe-Automation</title>
+    <title>FinanceVault: v140 Pure Zero</title>
     <style>
         body { font-family: sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
-        .nav { background: #2c3e50; padding: 10px; display: flex; gap: 10px; }
-        .n-btn { color: white; background: #34495e; border: none; padding: 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .nav { background: #2c3e50; padding: 10px; display: flex; gap: 5px; }
+        .n-btn { color: white; background: #34495e; border: none; padding: 12px; border-radius: 4px; cursor: pointer; font-weight: bold; flex: 1; }
         .page { display: none; padding: 20px; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; max-width: 800px; margin-left: auto; margin-right: auto; }
-        .bal-card { background: #3498db; color: white; padding: 15px; border-radius: 6px; display: inline-block; margin: 5px; font-weight: bold; min-width: 120px; text-align: center; border: none; cursor: pointer; }
-        .alert-card { background: #fff3cd; border-left: 5px solid #ffa000; padding: 15px; border-radius: 4px; margin-bottom: 15px; font-size: 14px; }
-        input, select, button { width: 100%; padding: 12px; margin: 5px 0; box-sizing: border-box; font-size: 16px; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; max-width: 600px; margin-left: auto; margin-right: auto; }
+        .bal-card { background: #3498db; color: white; padding: 15px; border-radius: 6px; display: inline-block; margin: 5px; font-weight: bold; min-width: 120px; text-align: center; border: none; }
+        input, select, button { width: 100%; padding: 12px; margin: 5px 0; box-sizing: border-box; }
         .btn-grn { background: #27ae60; color: white; border: none; font-weight: bold; cursor: pointer; }
-        .btn-sml { width: auto; padding: 6px 12px; font-size: 12px; margin: 2px; border-radius: 4px; border: 1px solid #ccc; cursor: pointer; }
-        table { width: 100%; border-collapse: collapse; }
-        td, th { border-bottom: 1px solid #ddd; padding: 10px; text-align: left; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        td, th { border-bottom: 1px solid #ddd; padding: 8px; text-align: left; font-size: 14px; }
     </style>
 </head>
 <body>
 
 <div class="nav">
-    <button class="n-btn" onclick="sh('p1')">Dashboard</button>
-    <button class="n-btn" onclick="sh('p2')">Recurring</button>
-    <button class="n-btn" onclick="sh('p3')">Categories</button>
-    <button class="n-btn" onclick="sh('p4')">Settings</button>
+    <button class="n-btn" onclick="sh('p1')">Dash</button>
+    <button class="n-btn" onclick="sh('p2')">Recur</button>
+    <button class="n-btn" onclick="sh('p3')">Cats</button>
+    <button class="n-btn" onclick="sh('p4')">Sett</button>
 </div>
 
 <div id="p1" class="page" style="display:block;">
-    <div id="out-alerts"></div>
     <div class="card">
         <h3>Balances</h3>
         <div id="out-bal"></div>
     </div>
     <div class="card">
-        <h3>New Bank Setup</h3>
-        <input type="text" id="bn_n" placeholder="Bank Name">
-        <input type="number" id="bn_i" placeholder="Starting Balance £">
-        <button class="btn-grn" onclick="addB()" style="background:#2c3e50">Save New Bank</button>
+        <h3>Add Bank</h3>
+        <input type="text" id="bn_n" placeholder="Name">
+        <input type="number" id="bn_i" placeholder="£ Amount">
+        <button class="btn-grn" onclick="addB()">Save Bank</button>
     </div>
     <div class="card">
-        <h3>Quick Post</h3>
-        <input type="date" id="tx_dt">
+        <h3>Manual Post</h3>
         <input type="text" id="tx_ds" placeholder="Description">
-        <input type="number" id="tx_am" placeholder="Amount £">
+        <input type="number" id="tx_am" placeholder="£">
         <select id="tx_bk"></select>
         <select id="tx_ct"></select>
         <button class="btn-grn" onclick="addTx()">Post Transaction</button>
-    </div>
-    <div class="card">
-        <h3>Ledger: <span id="l_title">Select Account</span></h3>
-        <table id="tbl_l"><thead><tr><th>Date</th><th>Desc</th><th>Amt</th></tr></thead><tbody id="out-his"></tbody></table>
     </div>
 </div>
 
 <div id="p2" class="page">
     <div class="card">
-        <h3 id="r_head">Add Recurring</h3>
-        <input type="hidden" id="r_idx" value="-1">
-        <input type="text" id="r_n" placeholder="e.g. Rent">
+        <h3>Recurring Template</h3>
+        <input type="text" id="r_n" placeholder="Name">
         <input type="number" id="r_a" placeholder="£">
-        <select id="r_bk"></select>
-        <select id="r_ct"></select>
-        <select id="r_f">
-            <option value="7">Weekly</option>
-            <option value="14">Fortnightly</option>
-            <option value="30" selected>Monthly</option>
-            <option value="365">Yearly</option>
-        </select>
         <input type="date" id="r_dt">
-        <button class="btn-grn" id="r_btn" onclick="saveR()">Save Template</button>
-        <button onclick="resetR()" id="r_can" style="display:none; background:#eee;">Cancel Edit</button>
+        <button class="btn-grn" onclick="addR()">Add Template</button>
     </div>
     <div class="card">
-        <h3>Upcoming Payments</h3>
-        <table>
-            <thead><tr><th>Next Date</th><th>Name</th><th>£</th><th>Action</th></tr></thead>
-            <tbody id="out-rec"></tbody>
-        </table>
+        <table><thead><tr><th>Date</th><th>Name</th><th>£</th></tr></thead><tbody id="out-rec"></tbody></table>
     </div>
 </div>
 
 <div id="p3" class="page">
     <div class="card">
-        <h3>Category Manager</h3>
+        <h3>Categories</h3>
         <input type="text" id="cn_n" placeholder="Name">
         <select id="cn_t"><option value="exp">Expense</option><option value="inc">Income</option></select>
         <button class="btn-grn" onclick="addC()">Add Category</button>
@@ -93,22 +71,23 @@
 
 <div id="p4" class="page">
     <div class="card">
-        <h3>Account Settings</h3>
-        <input type="password" id="set_pin" placeholder="Update PIN">
-        <button class="btn-grn" onclick="upP()">Update PIN</button>
+        <h3>Settings</h3>
+        <button onclick="localStorage.clear();location.reload();" style="color:red;">WIPE ALL DATA</button>
     </div>
 </div>
 
 <script>
-    var KEY = 'FV_V135_FINAL';
-    var db = { banks: [], cats: [{n:"Salary", t:"inc"}, {n:"Rent", t:"exp"}], recs: [], txs: [] };
+    var KEY = 'FV_PURE_V140';
+    var db = { banks: [], cats: [], recs: [], txs: [] };
 
     var saved = localStorage.getItem(KEY);
     if(saved) { db = JSON.parse(saved); }
 
     function sh(id) {
-        var p = ['p1','p2','p3','p4'];
-        for(var i=0; i<4; i++) { document.getElementById(p[i]).style.display = 'none'; }
+        document.getElementById('p1').style.display = 'none';
+        document.getElementById('p2').style.display = 'none';
+        document.getElementById('p3').style.display = 'none';
+        document.getElementById('p4').style.display = 'none';
         document.getElementById(id).style.display = 'block';
         dr();
     }
@@ -116,7 +95,10 @@
     function addB() {
         var n = document.getElementById('bn_n').value;
         var i = parseFloat(document.getElementById('bn_i').value);
-        if(n && !isNaN(i)) { db.banks.push({n: n, cur: i}); sv(); }
+        if(n && !isNaN(i)) {
+            db.banks.push({n: n, cur: i});
+            sv();
+        }
     }
 
     function addC() {
@@ -125,7 +107,68 @@
         if(n) { db.cats.push({n: n, t: t}); sv(); }
     }
 
-    function saveR() {
-        var idx = document.getElementById('r_idx').value;
-        var r = {
-            n: document.getElementById('r_n').
+    function addR() {
+        var n = document.getElementById('r_n').value;
+        var a = parseFloat(document.getElementById('r_a').value);
+        var d = document.getElementById('r_dt').value;
+        if(n && !isNaN(a)) { db.recs.push({n:n, a:a, dt:d}); sv(); }
+    }
+
+    function addTx() {
+        var ds = document.getElementById('tx_ds').value;
+        var am = parseFloat(document.getElementById('tx_am').value);
+        var bk = document.getElementById('tx_bk').value;
+        var ct = document.getElementById('tx_ct').value;
+        if(ds && !isNaN(am)) {
+            var type = 'exp';
+            for(var i=0; i<db.cats.length; i++) { if(db.cats[i].n == ct) type = db.cats[i].t; }
+            for(var j=0; j<db.banks.length; j++) {
+                if(db.banks[j].n == bk) {
+                    if(type == 'inc') db.banks[j].cur += am;
+                    else db.banks[j].cur -= am;
+                }
+            }
+            db.txs.push({d:ds, a:am, b:bk, t:type});
+            sv();
+        }
+    }
+
+    function sv() { 
+        localStorage.setItem(KEY, JSON.stringify(db)); 
+        dr(); 
+    }
+
+    function dr() {
+        // Banks & Dropdowns
+        var bH = "", bO = "", cO = "";
+        for(var i=0; i<db.banks.length; i++) {
+            bH += '<div class="bal-card">'+db.banks[i].n+'<br>£'+db.banks[i].cur.toFixed(2)+'</div>';
+            bO += '<option value="'+db.banks[i].n+'">'+db.banks[i].n+'</option>';
+        }
+        for(var j=0; j<db.cats.length; j++) { 
+            cO += '<option value="'+db.cats[j].n+'">'+db.cats[j].n+'</option>'; 
+        }
+        
+        document.getElementById('out-bal').innerHTML = bH;
+        document.getElementById('tx_bk').innerHTML = bO;
+        document.getElementById('tx_ct').innerHTML = cO;
+
+        // Categories
+        var cH = "";
+        for(var k=0; k<db.cats.length; k++) {
+            cH += '<tr><td>'+db.cats[k].n+'</td><td>'+db.cats[k].t+'</td></tr>';
+        }
+        document.getElementById('out-cat').innerHTML = cH;
+
+        // Recurring
+        var rH = "";
+        for(var l=0; l<db.recs.length; l++) {
+            rH += '<tr><td>'+db.recs[l].dt+'</td><td>'+db.recs[l].n+'</td><td>£'+db.recs[l].a+'</td></tr>';
+        }
+        document.getElementById('out-rec').innerHTML = rH;
+    }
+
+    window.onload = dr;
+</script>
+</body>
+</html>

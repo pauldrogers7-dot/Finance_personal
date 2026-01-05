@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finance Pro: Recurring Edition (£)</title>
+    <title>Finance Pro: Cash Flow (£)</title>
     <style>
-        :root { --primary: #2c3e50; --success: #27ae60; --danger: #e74c3c; --accent: #3498db; }
-        body { font-family: 'Segoe UI', sans-serif; max-width: 1200px; margin: 0 auto; background: #f0f2f5; padding: 20px; display: flex; flex-wrap: wrap; gap: 20px; }
+        :root { --primary: #2c3e50; --success: #27ae60; --danger: #e74c3c; --accent: #3498db; --warning: #f39c12; }
+        body { font-family: 'Segoe UI', sans-serif; max-width: 1250px; margin: 0 auto; background: #f0f2f5; padding: 20px; display: flex; flex-wrap: wrap; gap: 20px; }
         #lock-screen { position: fixed; inset: 0; background: var(--primary); display: flex; justify-content: center; align-items: center; z-index: 1000; }
         .lock-box { background: white; padding: 30px; border-radius: 12px; text-align: center; width: 300px; }
         .card-panel { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        .main-content { flex: 2; min-width: 350px; }
-        .side-content { flex: 1; min-width: 300px; }
+        .main-content { flex: 2; min-width: 400px; }
+        .side-content { flex: 1; min-width: 320px; }
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 20px; }
         .stat-card { padding: 15px; border-radius: 8px; color: white; text-align: center; }
         form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
@@ -20,8 +20,9 @@
         th, td { padding: 10px; text-align: left; border-bottom: 1px solid #f0f0f0; }
         button { cursor: pointer; border: none; border-radius: 6px; padding: 8px; font-weight: bold; }
         .btn-add { background: var(--primary); color: white; }
-        .mgr-section { margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; }
-        .recurring-item { font-size: 0.8em; background: #f1f2f6; padding: 5px; margin-bottom: 5px; border-radius: 4px; display: flex; justify-content: space-between; }
+        .btn-pay { background: var(--success); color: white; padding: 4px 8px; font-size: 0.8em; }
+        .recurring-queue { background: #fff3e0; border-left: 4px solid var(--warning); padding: 10px; border-radius: 4px; margin-top: 10px; }
+        .queue-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.85em; border-bottom: 1px solid #ffe0b2; padding-bottom: 5px; }
     </style>
 </head>
 <body>
@@ -36,19 +37,19 @@
 
 <div class="main-content">
     <div class="card-panel">
-        <h2>Accounts & Balances</h2>
+        <h2>Live Account Balances</h2>
         <div id="accounts-display" class="stats-grid"></div>
     </div>
 
     <div class="card-panel">
-        <h3>New Transaction</h3>
+        <h3>Confirmed Transactions</h3>
         <form id="tx-form">
-            <input type="text" id="desc" placeholder="Label" required>
+            <input type="text" id="desc" placeholder="Description" required>
             <input type="number" id="amt" placeholder="Amount" step="0.01" required>
             <input type="date" id="date" required>
             <select id="acc-select"></select>
             <select id="cat-select" class="full-width"></select>
-            <button type="submit" class="btn-add full-width">Add One-Off Transaction</button>
+            <button type="submit" class="btn-add full-width">Post Manual Transaction</button>
         </form>
         <div style="max-height: 400px; overflow-y: auto;">
             <table>
@@ -60,95 +61,83 @@
 </div>
 
 <div class="side-content">
+    <div class="card-panel" style="border-top: 5px solid var(--warning);">
+        <h3>Cash Flow: Due this Month</h3>
+        <p style="font-size: 0.8em; color: #666;">These are planned payments. Click 'Pay' to add them to your account.</p>
+        <div id="recurring-queue-list"></div>
+    </div>
+
     <div class="card-panel">
-        <h3>Recurring Payments</h3>
-        <form onsubmit="addRecurring(event)" style="display:grid; gap:5px;">
-            <input type="text" id="rec-desc" placeholder="Monthly Bill Name" required>
+        <h3>Recurring Templates</h3>
+        <form onsubmit="addRecurringTemplate(event)" style="display:grid; gap:5px;">
+            <input type="text" id="rec-desc" placeholder="e.g. Rent / Salary" required>
             <input type="number" id="rec-amt" placeholder="Amount £" step="0.01" required>
             <select id="rec-acc"></select>
-            <select id="rec-cat"></select>
-            <button class="btn-add">Add Monthly Recurring</button>
+            <select id="rec-cat" class="full-width"></select>
+            <button class="btn-add full-width">Add Template</button>
         </form>
-        <div id="recurring-list" style="margin-top:10px;"></div>
+        <div id="template-list" style="margin-top:10px;"></div>
     </div>
 
     <div class="card-panel">
-        <h3>Manage Accounts</h3>
+        <h3>Account Settings</h3>
         <form onsubmit="upsertAccount(event)" style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">
-            <input type="text" id="new-acc-name" placeholder="Account Name" required>
-            <input type="number" id="new-acc-open" placeholder="Opening Bal £" step="0.01" required>
-            <button class="btn-add full-width">Set Balance</button>
+            <input type="text" id="new-acc-name" placeholder="Name" required>
+            <input type="number" id="new-acc-open" placeholder="Opening £" step="0.01" required>
+            <button class="btn-add full-width">Update Account</button>
         </form>
-    </div>
-
-    <div class="card-panel">
-        <button onclick="exportCSV()" style="width:100%; background:var(--success); color:white; margin-bottom:5px;">Export CSV</button>
-        <button onclick="lock()" style="width:100%; background:var(--danger); color:white;">Lock Dashboard</button>
+        <button onclick="exportCSV()" style="width:100%; background:var(--success); color:white; margin-top:10px;">Export CSV</button>
+        <button onclick="lock()" style="width:100%; background:var(--danger); color:white; margin-top:5px;">Lock</button>
     </div>
 </div>
 
 <script>
     const PIN = "1234";
-    function unlock() { 
-        if(document.getElementById('pin-entry').value === PIN) { 
-            sessionStorage.setItem('auth', 'ok'); 
-            document.getElementById('lock-screen').style.display = 'none'; 
-            processRecurring(); 
-        } 
-    }
+    function unlock() { if(document.getElementById('pin-entry').value === PIN) { sessionStorage.setItem('auth', 'ok'); document.getElementById('lock-screen').style.display = 'none'; render(); } }
     function lock() { sessionStorage.removeItem('auth'); location.reload(); }
-    if(sessionStorage.getItem('auth') === 'ok') {
-        document.getElementById('lock-screen').style.display = 'none';
-        window.onload = processRecurring;
-    }
+    if(sessionStorage.getItem('auth') === 'ok') document.getElementById('lock-screen').style.display = 'none';
 
-    let data = JSON.parse(localStorage.getItem('fin_v4')) || {
-        accounts: { "Cash": 0, "Bank": 0 },
-        categories: { inc: ["Salary", "Gift"], exp: ["Food", "Rent", "Subs"] },
+    let data = JSON.parse(localStorage.getItem('fin_v5')) || {
+        accounts: { "Main Bank": 0 },
+        categories: { inc: ["Salary", "Dividend"], exp: ["Rent", "Food", "Leisure", "Utilities", "Subscription"] },
         txs: [],
-        recurring: [] 
+        templates: [] 
     };
 
-    function sync() { localStorage.setItem('fin_v4', JSON.stringify(data)); render(); }
+    function sync() { localStorage.setItem('fin_v5', JSON.stringify(data)); render(); }
 
-    function addRecurring(e) {
+    function addRecurringTemplate(e) {
         e.preventDefault();
-        data.recurring.push({
+        data.templates.push({
             id: Date.now(),
             desc: document.getElementById('rec-desc').value,
             amt: parseFloat(document.getElementById('rec-amt').value),
             acc: document.getElementById('rec-acc').value,
             cat: document.getElementById('rec-cat').value
         });
-        e.target.reset(); sync(); processRecurring();
+        e.target.reset(); sync();
     }
 
-    function removeRecurring(id) {
-        data.recurring = data.recurring.filter(r => r.id !== id);
+    function removeTemplate(id) {
+        data.templates = data.templates.filter(t => t.id !== id);
         sync();
     }
 
-    // Logic to automatically add transactions for the current month
-    function processRecurring() {
-        const currentMonth = new Date().toISOString().slice(0, 7); // "2023-10"
-        let added = false;
-
-        data.recurring.forEach(rule => {
-            const alreadyExists = data.txs.find(t => t.desc === rule.desc && t.date.startsWith(currentMonth));
-            if (!alreadyExists) {
-                data.txs.push({
-                    id: Date.now() + Math.random(),
-                    date: currentMonth + "-01", // Default to 1st of month
-                    acc: rule.acc,
-                    desc: rule.desc,
-                    amt: rule.amt,
-                    cat: rule.cat,
-                    type: data.categories.inc.includes(rule.cat) ? 'inc' : 'exp'
-                });
-                added = true;
-            }
-        });
-        if (added) sync();
+    // Function to "Execute" a recurring payment manually
+    function payRecurring(templateId) {
+        const template = data.templates.find(t => t.id === templateId);
+        if (template) {
+            data.txs.push({
+                id: Date.now(),
+                date: new Date().toISOString().slice(0, 10),
+                acc: template.acc,
+                desc: template.desc,
+                amt: template.amt,
+                cat: template.cat,
+                type: data.categories.inc.includes(template.cat) ? 'inc' : 'exp'
+            });
+            sync();
+        }
     }
 
     function upsertAccount(e) {
@@ -177,13 +166,13 @@
     function render() {
         const accs = Object.keys(data.accounts);
         const cats = [...data.categories.inc, ...data.categories.exp];
+        const currentMonth = new Date().toISOString().slice(0, 7);
 
-        // Populate all selects
-        ['acc-select', 'rec-acc'].forEach(id => {
-            document.getElementById(id).innerHTML = accs.map(a => `<option value="${a}">${a}</option>`).join('');
-        });
+        // Update Dropdowns
+        ['acc-select', 'rec-acc'].forEach(id => document.getElementById(id).innerHTML = accs.map(a => `<option value="${a}">${a}</option>`).join(''));
         ['cat-select', 'rec-cat'].forEach(id => {
-            document.getElementById(id).innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
+            document.getElementById(id).innerHTML = `<optgroup label="Income">${data.categories.inc.map(c => `<option value="${c}">${c}</option>`).join('')}</optgroup>
+                                                      <optgroup label="Expenses">${data.categories.exp.map(c => `<option value="${c}">${c}</option>`).join('')}</optgroup>`;
         });
 
         // Account Display
@@ -194,11 +183,26 @@
             accDisplay.innerHTML += `<div class="stat-card" style="background:var(--accent)">${name}<br><strong>£${(open + txTotal).toFixed(2)}</strong></div>`;
         }
 
-        // Recurring List
-        document.getElementById('recurring-list').innerHTML = data.recurring.map(r => `
-            <div class="recurring-item">
-                <span>${r.desc} (£${r.amt})</span>
-                <button onclick="removeRecurring(${r.id})" style="color:red; background:none; padding:0;">Delete</button>
+        // Cash Flow Queue (Pending this month)
+        const queueList = document.getElementById('recurring-queue-list');
+        queueList.innerHTML = '';
+        data.templates.forEach(t => {
+            const alreadyPaid = data.txs.some(tx => tx.desc === t.desc && tx.date.startsWith(currentMonth));
+            if (!alreadyPaid) {
+                queueList.innerHTML += `
+                    <div class="queue-item">
+                        <span><strong>${t.desc}</strong><br>£${t.amt.toFixed(2)} (${t.acc})</span>
+                        <button onclick="payRecurring(${t.id})" class="btn-pay">Pay Now</button>
+                    </div>`;
+            }
+        });
+        if (queueList.innerHTML === '') queueList.innerHTML = '<p style="font-size:0.8em; color:green;">✓ All recurring items paid this month.</p>';
+
+        // Template Management List
+        document.getElementById('template-list').innerHTML = data.templates.map(t => `
+            <div style="font-size:0.75em; display:flex; justify-content:space-between; padding:4px; border-bottom:1px solid #eee;">
+                <span>${t.desc} (£${t.amt})</span>
+                <button onclick="removeTemplate(${t.id})" style="color:red; background:none; padding:0;">&times;</button>
             </div>
         `).join('');
 
@@ -209,7 +213,7 @@
             const row = list.insertRow();
             row.innerHTML = `<td>${t.date}</td><td>${t.acc}</td><td>${t.desc}</td><td>${t.cat}</td>
                              <td style="color:${t.type === 'inc' ? 'green' : 'red'}">£${t.amt.toFixed(2)}</td>
-                             <td><button onclick="deleteTx(${t.id})" style="color:var(--danger); background:none;">&times;</button></td>`;
+                             <td><button onclick="deleteTx(${t.id})" style="color:var(--danger); background:none; font-size:1.2em;">&times;</button></td>`;
         });
     }
 
@@ -217,7 +221,7 @@
         let csv = "Date,Account,Description,Category,Amount,Type\n" + data.txs.map(t => `${t.date},${t.acc},${t.desc},${t.cat},${t.amt},${t.type}`).join("\n");
         let link = document.createElement('a');
         link.href = 'data:text/csv;charset=utf-8,' + encodeURI(csv);
-        link.download = 'finance_report.csv';
+        link.download = 'finance_export.csv';
         link.click();
     }
 

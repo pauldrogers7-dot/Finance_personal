@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>FinanceVault: v150 Stable Automation</title>
+    <title>FinanceVault: v155</title>
     <style>
         body { font-family: sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
         .nav { background: #2c3e50; padding: 10px; display: flex; gap: 5px; }
@@ -13,6 +13,7 @@
         input, select, button { width: 100%; padding: 12px; margin: 5px 0; box-sizing: border-box; }
         .btn-grn { background: #27ae60; color: white; border: none; font-weight: bold; cursor: pointer; }
         .btn-sml { width: auto; padding: 4px 8px; font-size: 11px; margin: 2px; cursor: pointer; }
+        .btn-red { background: #e74c3c; color: white; border: none; }
         table { width: 100%; border-collapse: collapse; }
         td, th { border-bottom: 1px solid #ddd; padding: 10px; text-align: left; }
     </style>
@@ -48,20 +49,16 @@
 <div id="p2" class="page">
     <div class="card">
         <h3>New Recurring Template</h3>
-        <input type="text" id="r_n" placeholder="Name (e.g. Rent)">
+        <input type="text" id="r_n" placeholder="Name">
         <input type="number" id="r_a" placeholder="Amount £">
         <select id="r_bk"></select>
         <select id="r_ct"></select>
-        <input type="number" id="r_f" placeholder="Frequency (Days, e.g. 30)">
+        <input type="number" id="r_f" placeholder="Frequency (Days)">
         <input type="date" id="r_dt">
         <button class="btn-grn" onclick="addR()">Save Recurring</button>
     </div>
     <div class="card">
-        <h3>Active Templates</h3>
-        <table>
-            <thead><tr><th>Next Due</th><th>Name</th><th>£</th><th>Action</th></tr></thead>
-            <tbody id="out-rec"></tbody>
-        </table>
+        <table><thead><tr><th>Next Due</th><th>Name</th><th>£</th><th>Action</th></tr></thead><tbody id="out-rec"></tbody></table>
     </div>
 </div>
 
@@ -73,25 +70,31 @@
         <button class="btn-grn" onclick="addB()" style="background:#2c3e50">Create Bank</button>
     </div>
     <div class="card">
-        <h3>Categories</h3>
+        <h3>Category Manager</h3>
         <input type="text" id="cn_n" placeholder="Name">
         <select id="cn_t"><option value="exp">Expense</option><option value="inc">Income</option></select>
         <button class="btn-grn" onclick="addC()">Add Category</button>
     </div>
-    <div class="card"><table><tbody id="out-cat"></tbody></table></div>
+    <div class="card">
+        <table>
+            <thead><tr><th>Category Name</th><th>Type</th><th>Action</th></tr></thead>
+            <tbody id="out-cat"></tbody>
+        </table>
+    </div>
 </div>
 
 <div id="p4" class="page">
     <div class="card">
         <h3>Account Settings</h3>
+        <p>Manage your PIN directly from the "Account Settings" menu.</p>
         <input type="password" id="pn_val" placeholder="New PIN">
         <button class="btn-grn" onclick="upP()">Update PIN</button>
     </div>
-    <button onclick="localStorage.clear();location.reload();" style="color:red; margin-top:50px;">WIPE ALL DATA</button>
+    <button onclick="if(confirm('Wipe everything?')){localStorage.clear();location.reload();}" style="color:red; margin-top:50px; background:none; border:1px solid red; padding:10px; cursor:pointer;">RESET SYSTEM</button>
 </div>
 
 <script>
-    var KEY = 'FV_STABLE_V150';
+    var KEY = 'FV_STABLE_V155';
     var db = { banks: [], cats: [], recs: [], txs: [] };
     var saved = localStorage.getItem(KEY);
     if(saved) { db = JSON.parse(saved); }
@@ -124,92 +127,18 @@
         var c = document.getElementById('r_ct').value;
         var f = parseInt(document.getElementById('r_f').value);
         var d = document.getElementById('r_dt').value;
-        if(n && !isNaN(a)) {
-            db.recs.push({n:n, a:a, b:b, c:c, f:f, dt:d});
-            sv();
-        }
+        if(n && !isNaN(a)) { db.recs.push({n:n, a:a, b:b, c:c, f:f, dt:d}); sv(); }
     }
 
     function postR(idx) {
         var r = db.recs[idx];
-        // 1. Determine Type
         var type = 'exp';
         for(var i=0; i<db.cats.length; i++) { if(db.cats[i].n == r.c) type = db.cats[i].t; }
-        // 2. Update Bank
         for(var j=0; j<db.banks.length; j++) {
             if(db.banks[j].n == r.b) {
                 if(type == 'inc') db.banks[j].cur += r.a;
                 else db.banks[j].cur -= r.a;
             }
         }
-        // 3. Add to Ledger
         db.txs.push({d: r.n + " (Rec)", a: r.a, b: r.b, t: type});
-        // 4. Update Date
-        var oldD = new Date(r.dt);
-        oldD.setDate(oldD.getDate() + r.f);
-        r.dt = oldD.toISOString().split('T')[0];
-        sv();
-    }
-
-    function addTx() {
-        var ds = document.getElementById('tx_ds').value;
-        var am = parseFloat(document.getElementById('tx_am').value);
-        var bk = document.getElementById('tx_bk').value;
-        var ct = document.getElementById('tx_ct').value;
-        if(ds && !isNaN(am)) {
-            var type = 'exp';
-            for(var i=0; i<db.cats.length; i++) { if(db.cats[i].n == ct) type = db.cats[i].t; }
-            for(var j=0; j<db.banks.length; j++) {
-                if(db.banks[j].n == bk) {
-                    if(type == 'inc') db.banks[j].cur += am;
-                    else db.banks[j].cur -= am;
-                }
-            }
-            db.txs.push({d:ds, a:am, b:bk, t:type});
-            sv();
-        }
-    }
-
-    function upP() { alert("PIN managed via Settings."); }
-    function sv() { localStorage.setItem(KEY, JSON.stringify(db)); dr(); }
-
-    var filterBk = "";
-    function dr() {
-        var bH = "", bO = "", cO = "";
-        for(var i=0; i<db.banks.length; i++) {
-            bH += '<button class="bal-card" onclick="filterBk=\''+db.banks[i].n+'\';dr()">'+db.banks[i].n+'<br>£'+db.banks[i].cur.toFixed(2)+'</button>';
-            bO += '<option value="'+db.banks[i].n+'">'+db.banks[i].n+'</option>';
-        }
-        for(var j=0; j<db.cats.length; j++) { cO += '<option value="'+db.cats[j].n+'">'+db.cats[j].n+'</option>'; }
-        
-        document.getElementById('out-bal').innerHTML = bH;
-        document.getElementById('tx_bk').innerHTML = bO;
-        document.getElementById('r_bk').innerHTML = bO;
-        document.getElementById('tx_ct').innerHTML = cO;
-        document.getElementById('r_ct').innerHTML = cO;
-
-        var rH = "";
-        for(var l=0; l<db.recs.length; l++) {
-            var r = db.recs[l];
-            rH += '<tr><td>'+r.dt+'</td><td>'+r.n+'</td><td>£'+r.a+'</td>';
-            rH += '<td><button class="btn-sml" onclick="postR('+l+')">Post</button><button class="btn-sml" style="color:red;" onclick="db.recs.splice('+l+',1);sv()">Del</button></td></tr>';
-        }
-        document.getElementById('out-rec').innerHTML = rH;
-
-        document.getElementById('l_title').innerText = filterBk || "Select Account";
-        var lH = "";
-        for(var m=0; m<db.txs.length; m++) {
-            if(db.txs[m].b == filterBk) {
-                lH += '<tr><td>'+db.txs[m].d+'</td><td>£'+db.txs[m].a+'</td></tr>';
-            }
-        }
-        document.getElementById('out-his').innerHTML = lH;
-
-        var cH = "";
-        for(var k=0; k<db.cats.length; k++) { cH += '<tr><td>'+db.cats[k].n+'</td><td>'+db.cats[k].t+'</td></tr>'; }
-        document.getElementById('out-cat').innerHTML = cH;
-    }
-    window.onload = dr;
-</script>
-</body>
-</html>
+        var oldD

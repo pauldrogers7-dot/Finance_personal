@@ -3,119 +3,114 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finance Pro: Fixed Navigation</title>
+    <title>Finance Pro: Zero-Error Version</title>
     <style>
-        :root { --primary: #2c3e50; --success: #27ae60; --danger: #e74c3c; --accent: #3498db; --warning: #f39c12; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
+        :root { --primary: #2c3e50; --success: #27ae60; --danger: #e74c3c; --accent: #3498db; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f2f5; margin: 0; padding: 0; color: #333; }
         
-        /* Navigation Bar */
-        nav { background: var(--primary); color: white; padding: 10px 20px; display: flex; gap: 25px; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-        .nav-link { color: #bdc3c7; text-decoration: none; cursor: pointer; font-weight: 600; padding: 10px; transition: 0.3s; }
-        .nav-link:hover { color: white; }
-        .nav-link.active { color: white; border-bottom: 3px solid var(--accent); }
+        /* Nav */
+        nav { background: var(--primary); color: white; padding: 0 20px; display: flex; align-items: center; height: 60px; gap: 30px; }
+        .nav-btn { cursor: pointer; padding: 20px 10px; font-weight: bold; border-bottom: 3px solid transparent; opacity: 0.7; }
+        .nav-btn:hover { opacity: 1; }
+        .nav-btn.active { border-bottom: 3px solid var(--accent); opacity: 1; }
 
+        /* Container & Grid */
         .container { padding: 25px; max-width: 1200px; margin: 0 auto; }
-        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 25px; }
-        
-        /* Layout */
-        .page { display: none; animation: fadeIn 0.3s; }
-        .page.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 20px; }
         .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
-        input, select, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 6px; border: 1px solid #dfe6e9; box-sizing: border-box; font-size: 1rem; }
-        button { cursor: pointer; border: none; transition: background 0.2s; }
-        .btn-go { background: var(--success); color: white; }
-        .btn-go:hover { background: #219150; }
         
-        /* Tables */
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; }
-        th, td { text-align: left; padding: 15px; border-bottom: 1px solid #f1f2f6; }
-        th { background: #f8f9fa; color: #636e72; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; }
+        /* Visibility */
+        .page-content { display: none; }
+        .page-content.active { display: block; }
 
-        .bal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; }
-        .bal-card { background: linear-gradient(135deg, var(--accent), #2980b9); color: white; padding: 20px; border-radius: 10px; text-align: center; }
-        .bal-card strong { font-size: 1.6em; display: block; margin-top: 5px; }
+        /* Balance Cards */
+        .bal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-top: 10px; }
+        .bal-card { background: var(--accent); color: white; padding: 20px; border-radius: 10px; text-align: center; }
+        .bal-card strong { font-size: 1.5em; display: block; margin-top: 5px; }
+
+        /* Form styling */
+        input, select, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box; }
+        button { cursor: pointer; border: none; font-weight: bold; }
+        .btn-go { background: var(--success); color: white; }
+        .btn-reset { background: var(--danger); color: white; margin-top: 20px; }
+        
+        table { width: 100%; border-collapse: collapse; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #eee; }
     </style>
 </head>
 <body>
 
 <nav>
-    <h1 style="font-size: 1.3em; margin: 0; color: var(--accent);">FinanceVault</h1>
-    <div onclick="showPage('dashboard')" id="btn-dashboard" class="nav-link active">Dashboard</div>
-    <div onclick="showPage('categories')" id="btn-categories" class="nav-link">Manage Categories</div>
+    <div style="font-size: 1.4em; font-weight: bold; color: var(--accent); margin-right: 20px;">FinanceVault</div>
+    <div class="nav-btn active" id="tab-dash" onclick="switchPage('dash')">Dashboard</div>
+    <div class="nav-btn" id="tab-cats" onclick="switchPage('cats')">Manage Categories</div>
 </nav>
 
 <div class="container">
     
-    <div id="page-dashboard" class="page active">
+    <div id="view-dash" class="page-content active">
         <div class="card">
-            <h2>Current Balances</h2>
-            <div id="bal-area" class="bal-grid"></div>
+            <h2>Account Balances</h2>
+            <div id="render-balances" class="bal-grid"></div>
         </div>
 
         <div class="grid">
-            <div class="left-col">
+            <div>
                 <div class="card">
-                    <h3>New Transaction</h3>
-                    <form onsubmit="addEntry(event)" style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px;">
-                        <input type="text" id="t-desc" placeholder="What was it for?" required style="grid-column: span 2;">
-                        <input type="number" id="t-amt" placeholder="£0.00" step="0.01" required>
-                        <input type="date" id="t-date" required>
-                        <select id="t-acc"></select>
-                        <select id="t-cat"></select>
-                        <button class="btn-go" style="grid-column: span 3; margin-top: 10px;">Record Transaction</button>
+                    <h3>One-Off Transaction</h3>
+                    <form onsubmit="postTx(event)">
+                        <div style="display:flex; gap:10px;">
+                            <input type="text" id="tx-desc" placeholder="Description" required>
+                            <input type="number" id="tx-amt" placeholder="Amount £" step="0.01" required>
+                        </div>
+                        <div style="display:flex; gap:10px;">
+                            <select id="sel-acc"></select>
+                            <select id="sel-cat"></select>
+                            <input type="date" id="tx-date" required>
+                        </div>
+                        <button class="btn-go">Post to Account</button>
                     </form>
                 </div>
-                
+
                 <div class="card">
-                    <h3>Recent Activity</h3>
-                    <div style="overflow-x: auto;">
-                        <table id="history-table">
-                            <thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Amount</th><th>Account</th><th></th></tr></thead>
-                            <tbody id="history-body"></tbody>
-                        </table>
-                    </div>
+                    <h3>Recent History</h3>
+                    <table id="tx-table">
+                        <thead><tr><th>Date</th><th>Description</th><th>Amount</th><th>Acc</th><th></th></tr></thead>
+                        <tbody id="render-history"></tbody>
+                    </table>
                 </div>
             </div>
 
-            <div class="right-col">
+            <div>
                 <div class="card">
                     <h3>Setup Bank Account</h3>
-                    <form onsubmit="addAcc(event)">
-                        <input type="text" id="a-name" placeholder="Bank Name (e.g. Monzo)" required>
-                        <input type="number" id="a-bal" placeholder="Opening Balance £" step="0.01" required>
-                        <button style="background: var(--primary); color: white;">Add Bank</button>
+                    <form onsubmit="postAcc(event)">
+                        <input type="text" id="acc-name" placeholder="Bank Name" required>
+                        <input type="number" id="acc-init" placeholder="Opening Balance £" step="0.01" required>
+                        <button style="background:var(--primary); color:white;">Add Account</button>
                     </form>
                 </div>
+                <button onclick="nuclearReset()" class="btn-reset">Wipe App Data</button>
             </div>
         </div>
     </div>
 
-    <div id="page-categories" class="page">
+    <div id="view-cats" class="page-content">
         <div class="card">
-            <h2>Category Manager</h2>
-            <p style="color: #636e72;">Define your spending and income groups below.</p>
-            
+            <h2>Category Table Editor</h2>
             <table>
-                <thead>
-                    <tr>
-                        <th>Category Label</th>
-                        <th>Financial Impact</th>
-                        <th style="text-align: right;">Action</th>
-                    </tr>
-                </thead>
-                <tbody id="cat-table-body"></tbody>
+                <thead><tr><th>Category Name</th><th>Type</th><th>Action</th></tr></thead>
+                <tbody id="render-cat-table"></tbody>
             </table>
 
-            <h3 style="margin-top: 40px;">Add New Category</h3>
-            <form onsubmit="addNewCategory(event)" style="display: flex; gap: 10px;">
-                <input type="text" id="nc-name" placeholder="e.g. Health, Coffee, Bonus" required>
-                <select id="nc-type" style="width: 250px;">
-                    <option value="exp">Expense (Subtracts from Balance)</option>
-                    <option value="inc">Income (Adds to Balance)</option>
+            <h3 style="margin-top:30px;">Add New Category</h3>
+            <form onsubmit="postCat(event)" style="display:flex; gap:10px;">
+                <input type="text" id="new-cat-name" placeholder="Name" required>
+                <select id="new-cat-type" style="width:200px;">
+                    <option value="exp">Expense (-)</option>
+                    <option value="inc">Income (+)</option>
                 </select>
-                <button class="btn-go" style="width: 180px;">Add to List</button>
+                <button class="btn-go" style="width:150px;">Add Category</button>
             </form>
         </div>
     </div>
@@ -123,10 +118,9 @@
 </div>
 
 <script>
-    const DB_NAME = 'Finance_v2026_FINAL';
-
-    // 1. DATA CORE
-    let state = JSON.parse(localStorage.getItem(DB_NAME)) || {
+    // 1. DATA INITIALIZATION
+    const KEY = 'FINANCE_SYSTEM_2026';
+    let data = JSON.parse(localStorage.getItem(KEY)) || {
         accounts: {},
         txs: [],
         categories: [
@@ -136,5 +130,141 @@
         ]
     };
 
-    // 2. PAGE NAVIGATION ENGINE
-    function showPage(pageName
+    // 2. REFRESH & SAVE ENGINE
+    function sync() {
+        localStorage.setItem(KEY, JSON.stringify(data));
+        renderBalances();
+        renderHistory();
+        renderCats();
+        updateDropdowns();
+    }
+
+    // 3. PAGE SWITCHER (FIXED)
+    function switchPage(target) {
+        // Hide all views
+        document.getElementById('view-dash').classList.remove('active');
+        document.getElementById('view-cats').classList.remove('active');
+        // Deactivate tabs
+        document.getElementById('tab-dash').classList.remove('active');
+        document.getElementById('tab-cats').classList.remove('active');
+
+        // Show active
+        document.getElementById('view-' + target).classList.add('active');
+        document.getElementById('tab-' + target).classList.add('active');
+        
+        console.log("Navigated to: " + target);
+    }
+
+    // 4. ACTION FUNCTIONS
+    function postAcc(e) {
+        e.preventDefault();
+        const name = document.getElementById('acc-name').value;
+        const val = parseFloat(document.getElementById('acc-init').value);
+        data.accounts[name] = val;
+        sync();
+        e.target.reset();
+    }
+
+    function postCat(e) {
+        e.preventDefault();
+        data.categories.push({
+            name: document.getElementById('new-cat-name').value,
+            type: document.getElementById('new-cat-type').value
+        });
+        sync();
+        e.target.reset();
+    }
+
+    function postTx(e) {
+        e.preventDefault();
+        const catName = document.getElementById('sel-cat').value;
+        const catData = data.categories.find(c => c.name === catName);
+        
+        data.txs.push({
+            id: Date.now(),
+            desc: document.getElementById('tx-desc').value,
+            amt: parseFloat(document.getElementById('tx-amt').value),
+            date: document.getElementById('tx-date').value,
+            acc: document.getElementById('sel-acc').value,
+            type: catData ? catData.type : 'exp'
+        });
+        sync();
+        e.target.reset();
+        document.getElementById('tx-date').valueAsDate = new Date();
+    }
+
+    // 5. RENDERING (THE STABILITY FIX)
+    function renderBalances() {
+        const area = document.getElementById('render-balances');
+        const names = Object.keys(data.accounts);
+        
+        if (names.length === 0) {
+            area.innerHTML = '<p style="color:#666; padding:20px;">No accounts yet. Use the sidebar to add your first bank.</p>';
+            return;
+        }
+
+        area.innerHTML = '';
+        names.forEach(name => {
+            const start = data.accounts[name] || 0;
+            const history = data.txs.filter(t => t.acc === name);
+            const net = history.reduce((acc, t) => acc + (t.type === 'inc' ? t.amt : -t.amt), 0);
+            
+            area.innerHTML += `
+                <div class="bal-card">
+                    ${name}
+                    <strong>£${(start + net).toFixed(2)}</strong>
+                </div>`;
+        });
+    }
+
+    function renderHistory() {
+        const body = document.getElementById('render-history');
+        body.innerHTML = data.txs.slice().reverse().slice(0,10).map(t => `
+            <tr>
+                <td>${t.date}</td>
+                <td>${t.desc}</td>
+                <td style="color:${t.type==='inc'?'green':'red'}">£${t.amt.toFixed(2)}</td>
+                <td>${t.acc}</td>
+                <td><button onclick="deleteTx(${t.id})" style="color:red; background:none; width:auto;">&times;</button></td>
+            </tr>
+        `).join('');
+    }
+
+    function renderCats() {
+        const body = document.getElementById('render-cat-table');
+        body.innerHTML = data.categories.map((c, i) => `
+            <tr>
+                <td><strong>${c.name}</strong></td>
+                <td>${c.type === 'inc' ? 'Income' : 'Expense'}</td>
+                <td><button onclick="data.categories.splice(${i},1); sync();" style="color:red; background:none; width:auto;">Delete</button></td>
+            </tr>
+        `).join('');
+    }
+
+    function updateDropdowns() {
+        const accs = Object.keys(data.accounts);
+        document.getElementById('sel-acc').innerHTML = accs.map(a => `<option>${a}</option>`).join('');
+        document.getElementById('sel-cat').innerHTML = data.categories.map(c => `<option>${c.name}</option>`).join('');
+    }
+
+    function deleteTx(id) {
+        data.txs = data.txs.filter(t => t.id !== id);
+        sync();
+    }
+
+    function nuclearReset() {
+        if(confirm("Wipe everything?")) {
+            localStorage.clear();
+            location.reload();
+        }
+    }
+
+    // BOOT UP
+    window.onload = () => {
+        document.getElementById('tx-date').valueAsDate = new Date();
+        sync();
+        console.log("App Booted Successfully");
+    };
+</script>
+</body>
+</html>

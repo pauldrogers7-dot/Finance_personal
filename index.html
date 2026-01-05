@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finance Pro: Fix Balances</title>
+    <title>Finance Pro: Custom Categories & One-Offs</title>
     <style>
         :root { --primary: #2c3e50; --success: #27ae60; --danger: #e74c3c; --accent: #3498db; --warning: #f39c12; }
         body { font-family: sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
         
-        .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; max-width: 1200px; margin: 0 auto; }
+        .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; max-width: 1400px; margin: 0 auto; }
         .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
         
         input, select, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; }
@@ -20,14 +20,13 @@
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9em; }
         th, td { text-align: left; padding: 12px; border-bottom: 1px solid #eee; }
         
-        /* Fixed Balance Grid */
-        .bal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; min-height: 50px; }
-        .bal-card { background: var(--accent); color: white; padding: 20px; border-radius: 8px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .bal-card strong { font-size: 1.4em; display: block; margin-top: 5px; }
+        .bal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
+        .bal-card { background: var(--accent); color: white; padding: 20px; border-radius: 8px; text-align: center; }
+        .bal-card strong { font-size: 1.4em; display: block; }
         
         .due-banner { background: #fff9e6; border: 2px solid var(--warning); padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .cat-tag { display: inline-block; background: #eee; padding: 2px 8px; border-radius: 12px; font-size: 0.75em; margin: 2px; }
         .dev-badge { background: #e67e22; color: white; padding: 5px 10px; border-radius: 5px; font-size: 0.8em; margin-bottom: 10px; display: inline-block; }
-        .empty-msg { color: #888; font-style: italic; text-align: center; padding: 20px; }
     </style>
 </head>
 <body>
@@ -39,61 +38,75 @@
 
         <div class="card">
             <h2>Account Balances</h2>
-            <div id="bal-area" class="bal-grid">
-                </div>
+            <div id="bal-area" class="bal-grid"></div>
+        </div>
+
+        <div class="card">
+            <h3>Add One-Off Transaction</h3>
+            <form onsubmit="addOneOff(event)" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                <input type="text" id="oo-desc" placeholder="Item/Store Name" required style="grid-column: span 2;">
+                <input type="number" id="oo-amt" placeholder="Amount £" step="0.01" required>
+                <input type="date" id="oo-date" required>
+                <select id="oo-acc"></select>
+                <select id="oo-cat"></select>
+                <button class="btn-go" style="grid-column: span 3; margin: 0;">Post Transaction</button>
+            </form>
         </div>
 
         <div class="card">
             <h3>Transaction History</h3>
             <div style="overflow-x:auto;">
                 <table>
-                    <thead><tr><th>Date</th><th>Desc</th><th>Amt</th><th>Acc</th><th></th></tr></thead>
+                    <thead><tr><th>Date</th><th>Desc</th><th>Cat</th><th>Amt</th><th>Acc</th><th></th></tr></thead>
                     <tbody id="history-body"></tbody>
                 </table>
             </div>
-            <div id="empty-history" class="empty-msg" style="display:none;">No transactions yet.</div>
         </div>
     </div>
 
     <div class="side">
-        <div class="card" style="border-top: 5px solid var(--danger);">
-            <h3>Account Settings</h3>
-            <p style="font-size: 0.8em; color: #666;">PIN is currently hidden but saved in background.</p>
-            <form onsubmit="updateUserPin(event)">
-                <input type="password" id="new-pin" placeholder="New PIN" required>
-                <button class="btn-main">Update PIN</button>
+        <div class="card" style="border-top: 5px solid var(--accent);">
+            <h3>Manage Categories</h3>
+            <div id="category-list" style="margin-bottom: 15px;"></div>
+            <form onsubmit="addCategory(event)">
+                <input type="text" id="cat-name" placeholder="New Category Name" required>
+                <select id="cat-type">
+                    <option value="exp">Expense Type</option>
+                    <option value="inc">Income Type</option>
+                </select>
+                <button class="btn-main">Add Category</button>
             </form>
-            <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
-            <button onclick="fullSystemReset()" class="btn-danger">Nuclear Reset (Wipe All)</button>
         </div>
 
         <div class="card" style="border-left: 5px solid var(--warning);">
             <h3>Recurring Templates</h3>
             <form onsubmit="addTemplate(event)">
-                <input type="text" id="rt-desc" placeholder="Netflix / Rent" required>
+                <input type="text" id="rt-desc" placeholder="Netflix/Rent" required>
                 <input type="number" id="rt-amt" placeholder="Amount £" step="0.01" required>
                 <input type="date" id="rt-date" required>
-                <select id="rt-freq">
-                    <option value="7">Weekly</option>
-                    <option value="30">Monthly</option>
-                </select>
                 <select id="rt-acc"></select>
-                <select id="rt-type">
-                    <option value="exp">Expense (-)</option>
-                    <option value="inc">Income (+)</option>
-                </select>
+                <select id="rt-cat"></select>
                 <button class="btn-main">Save Template</button>
             </form>
-            <div id="template-list" style="margin-top:15px; font-size:0.8em;"></div>
+            <div id="template-list" style="margin-top:10px; font-size:0.8em;"></div>
         </div>
 
         <div class="card">
-            <h3>1. Create Bank Account</h3>
+            <h3>Manage Bank Accounts</h3>
             <form onsubmit="addNewAcc(event)">
-                <input type="text" id="a-name" placeholder="e.g. Lloyds / Monzo" required>
+                <input type="text" id="a-name" placeholder="Bank Name" required>
                 <input type="number" id="a-bal" placeholder="Current Balance £" step="0.01" required>
-                <button class="btn-go">Set Initial Balance</button>
+                <button class="btn-main">Add Account</button>
             </form>
+        </div>
+
+        <div class="card" style="border-top: 5px solid var(--danger);">
+            <h3>Account Settings</h3>
+            <form onsubmit="updateUserPin(event)">
+                <input type="password" id="new-pin" placeholder="Update PIN" required>
+                <button class="btn-main">Save PIN</button>
+            </form>
+            <button onclick="fullSystemReset()" class="btn-danger" style="margin-top: 10px;">Wipe All Data</button>
         </div>
     </div>
 </div>
@@ -101,12 +114,15 @@
 <script>
     const DB_KEY = 'Finance_v2026_FINAL';
 
-    // Initialize state with default account if none exists
     let state = JSON.parse(localStorage.getItem(DB_KEY)) || {
         pin: "1234",
         accounts: {},
         txs: [],
-        templates: []
+        templates: [],
+        categories: {
+            inc: ["Salary", "Interest"],
+            exp: ["Groceries", "Bills", "Rent", "Transport", "Leisure"]
+        }
     };
 
     function save() {
@@ -115,31 +131,63 @@
     }
 
     function fullSystemReset() {
-        if(confirm("Wipe all data? This cannot be undone.")) {
-            localStorage.clear();
-            location.reload();
+        if(confirm("Wipe all data?")) { localStorage.clear(); location.reload(); }
+    }
+
+    // CATEGORY MANAGEMENT
+    function addCategory(e) {
+        e.preventDefault();
+        const name = document.getElementById('cat-name').value;
+        const type = document.getElementById('cat-type').value;
+        if (!state.categories[type].includes(name)) {
+            state.categories[type].push(name);
+            save();
         }
+        e.target.reset();
+    }
+
+    function removeCategory(type, name) {
+        state.categories[type] = state.categories[type].filter(c => c !== name);
+        save();
+    }
+
+    // TRANSACTION MANAGEMENT
+    function addOneOff(e) {
+        e.preventDefault();
+        const cat = document.getElementById('oo-cat').value;
+        state.txs.push({
+            id: Date.now(),
+            date: document.getElementById('oo-date').value,
+            desc: document.getElementById('oo-desc').value,
+            amt: parseFloat(document.getElementById('oo-amt').value),
+            acc: document.getElementById('oo-acc').value,
+            cat: cat,
+            type: state.categories.inc.includes(cat) ? 'inc' : 'exp'
+        });
+        save();
+        e.target.reset();
+        document.getElementById('oo-date').valueAsDate = new Date();
     }
 
     function addNewAcc(e) {
         e.preventDefault();
-        const name = document.getElementById('a-name').value;
-        const bal = parseFloat(document.getElementById('a-bal').value);
-        state.accounts[name] = bal;
+        state.accounts[document.getElementById('a-name').value] = parseFloat(document.getElementById('a-bal').value);
         save();
         e.target.reset();
     }
 
     function addTemplate(e) {
         e.preventDefault();
+        const cat = document.getElementById('rt-cat').value;
         state.templates.push({
             id: Date.now(),
             desc: document.getElementById('rt-desc').value,
             amt: parseFloat(document.getElementById('rt-amt').value),
             nextDate: document.getElementById('rt-date').value,
-            freq: parseInt(document.getElementById('rt-freq').value),
+            freq: 30, // Default monthly
             acc: document.getElementById('rt-acc').value,
-            type: document.getElementById('rt-type').value
+            cat: cat,
+            type: state.categories.inc.includes(cat) ? 'inc' : 'exp'
         });
         save();
         e.target.reset();
@@ -149,108 +197,31 @@
         const t = state.templates.find(x => x.id === id);
         state.txs.push({
             id: Date.now(),
+            date: t.nextDate,
             desc: t.desc,
             amt: t.amt,
             acc: t.acc,
-            type: t.type,
-            date: t.nextDate
+            cat: t.cat,
+            type: t.type
         });
-        
         let d = new Date(t.nextDate);
-        d.setDate(d.getDate() + t.freq);
+        d.setMonth(d.getMonth() + 1);
         t.nextDate = d.toISOString().split('T')[0];
         save();
     }
 
     function refreshUI() {
         const accNames = Object.keys(state.accounts);
+        const allCats = [...state.categories.inc, ...state.categories.exp];
         
         // Update Select Dropdowns
-        const accSelect = document.getElementById('rt-acc');
-        accSelect.innerHTML = accNames.length > 0 
-            ? accNames.map(n => `<option value="${n}">${n}</option>`).join('')
-            : '<option disabled>Add an account first</option>';
+        const selects = ['oo-acc', 'rt-acc', 'oo-cat', 'rt-cat'];
+        document.getElementById('oo-acc').innerHTML = accNames.map(n => `<option>${n}</option>`).join('');
+        document.getElementById('rt-acc').innerHTML = accNames.map(n => `<option>${n}</option>`).join('');
+        document.getElementById('oo-cat').innerHTML = allCats.map(c => `<option>${c}</option>`).join('');
+        document.getElementById('rt-cat').innerHTML = allCats.map(c => `<option>${c}</option>`).join('');
 
-        // 1. Force Render Balances
-        const balArea = document.getElementById('bal-area');
-        if (accNames.length === 0) {
-            balArea.innerHTML = '<div class="empty-msg">No accounts found. Use the sidebar to add your first bank account.</div>';
-        } else {
-            balArea.innerHTML = '';
-            accNames.forEach(name => {
-                const history = state.txs.filter(t => t.acc === name);
-                const netChange = history.reduce((sum, t) => sum + (t.type === 'inc' ? t.amt : -t.amt), 0);
-                const currentTotal = state.accounts[name] + netChange;
-                
-                balArea.innerHTML += `
-                    <div class="bal-card">
-                        ${name}
-                        <strong>£${currentTotal.toFixed(2)}</strong>
-                    </div>`;
-            });
-        }
-
-        // 2. Show History
-        const histBody = document.getElementById('history-body');
-        const emptyHist = document.getElementById('empty-history');
-        if (state.txs.length === 0) {
-            histBody.innerHTML = '';
-            emptyHist.style.display = 'block';
-        } else {
-            emptyHist.style.display = 'none';
-            histBody.innerHTML = state.txs.slice().reverse().slice(0,10).map((t) => `
-                <tr>
-                    <td>${t.date}</td>
-                    <td>${t.desc}</td>
-                    <td style="color:${t.type==='inc'?'green':'red'}">£${t.amt.toFixed(2)}</td>
-                    <td>${t.acc}</td>
-                    <td><button onclick="deleteTx(${t.id})" style="color:red; background:none; width:auto; padding:0;">&times;</button></td>
-                </tr>
-            `).join('');
-        }
-
-        // 3. Templates
-        document.getElementById('template-list').innerHTML = state.templates.map(t => `
-            <div style="border-bottom:1px solid #eee; padding:5px; display:flex; justify-content:space-between; align-items:center;">
-                <span>${t.desc} (£${t.amt})</span>
-                <button onclick="deleteTemplate(${t.id})" style="width:auto; color:red; background:none;">&times;</button>
-            </div>
-        `).join('');
-
-        // 4. Alerts
-        const dueSec = document.getElementById('due-section');
-        dueSec.innerHTML = '';
-        const today = new Date().toISOString().split('T')[0];
-        state.templates.forEach(t => {
-            if(t.nextDate <= today) {
-                dueSec.innerHTML += `
-                    <div class="due-banner">
-                        <span><strong>Upcoming Payment:</strong> ${t.desc} (£${t.amt})</span>
-                        <button onclick="postRecurring(${t.id})" class="btn-go" style="width:120px; margin:0;">Post to Bank</button>
-                    </div>`;
-            }
-        });
-    }
-
-    function deleteTx(id) {
-        state.txs = state.txs.filter(t => t.id !== id);
-        save();
-    }
-
-    function deleteTemplate(id) {
-        state.templates = state.templates.filter(t => t.id !== id);
-        save();
-    }
-
-    function updateUserPin(e) {
-        e.preventDefault();
-        state.pin = document.getElementById('new-pin').value;
-        save();
-        alert("PIN updated!");
-        e.target.reset();
-    }
-
-    window.onload = refreshUI;
-</script>
-</body>
-</html>
+        // Category Manager Display
+        const catArea = document.getElementById('category-list');
+        catArea.innerHTML = '<strong>Expenses:</strong><br>';
+        state.categories.exp.forEach

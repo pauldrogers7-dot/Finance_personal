@@ -2,24 +2,31 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>FinanceVault: v80 Transaction Ledger</title>
+    <title>FinanceVault: v85 Interactive Ledger</title>
     <style>
         :root { --primary: #2c3e50; --success: #27ae60; --accent: #3498db; --danger: #e74c3c; }
         body { font-family: sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
-        .navbar { background: var(--primary); padding: 10px; display: flex; gap: 10px; overflow-x: auto; }
+        .navbar { background: var(--primary); padding: 10px; display: flex; gap: 10px; overflow-x: auto; position: sticky; top:0; z-index:100; }
         .nav-btn { color: white; background: rgba(255,255,255,0.1); border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; white-space: nowrap; }
         .page { display: none; padding: 20px; }
         .page.active { display: block; }
         .container { max-width: 1000px; margin: 0 auto; }
         .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
         .bal-grid { display: flex; gap: 10px; flex-wrap: wrap; }
-        .bal-card { background: var(--accent); color: white; padding: 20px; border-radius: 8px; min-width: 150px; text-align: center; font-weight: bold; }
+        /* Interactive Bal Card */
+        .bal-card { background: var(--accent); color: white; padding: 20px; border-radius: 8px; min-width: 150px; text-align: center; font-weight: bold; cursor: pointer; transition: transform 0.2s; }
+        .bal-card:hover { transform: translateY(-3px); background: #2980b9; }
+        
         input, select, button { width: 100%; padding: 12px; margin: 5px 0; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; font-size: 16px; }
         .btn-go { background: var(--success); color: white; border: none; cursor: pointer; font-weight: bold; }
+        .btn-edit { background: var(--accent); color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; width: auto; font-size: 14px; }
+        .btn-del { background: var(--danger); color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; width: auto; font-size: 14px; }
+        
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         td, th { text-align: left; padding: 12px; border-bottom: 1px solid #eee; }
         .pos { color: var(--success); font-weight: bold; }
         .neg { color: var(--danger); font-weight: bold; }
+        .highlight-row { background-color: #f8f9fa; }
     </style>
 </head>
 <body>
@@ -34,43 +41,35 @@
 <div class="container">
     <div id="pg-dash" class="page active">
         <div class="card">
-            <h3>Bank Balances</h3>
+            <h3>Bank Balances <small style="font-weight: normal; font-size: 12px; color: #666;">(Click a card to view history)</small></h3>
             <div id="box-bal" class="bal-grid"></div>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
             <div class="card">
-                <h3>New Transaction</h3>
+                <h3>Post Transaction</h3>
                 <input type="date" id="tx-date">
-                <input type="text" id="tx-desc" placeholder="Description">
+                <input type="text" id="tx-desc" placeholder="What was it?">
                 <input type="number" id="tx-amt" placeholder="£ Amount">
                 <select id="sel-tx-bank"></select>
                 <select id="sel-tx-cat"></select>
                 <button class="btn-go" onclick="doAddTx()">Post Transaction</button>
             </div>
             <div class="card">
-                <h3>Bank Setup</h3>
+                <h3>Quick Bank Setup</h3>
                 <input type="text" id="in-bank-name" placeholder="Bank Name">
                 <input type="number" id="in-bank-bal" placeholder="Opening Balance £">
-                <button class="btn-go" onclick="doAddBank()" style="background:var(--primary)">Add New Bank</button>
+                <button class="btn-go" onclick="doAddBank()" style="background:var(--primary)">Create Bank</button>
             </div>
         </div>
 
-        <div class="card">
-            <h3>Account Ledger (Running Balance)</h3>
+        <div class="card" id="ledger-anchor">
+            <h3>Account Ledger: <span id="ledger-title">Select an Account</span></h3>
             <div style="margin-bottom: 15px;">
-                <label>Filter by Bank:</label>
                 <select id="sel-filter-bank" onchange="draw()"></select>
             </div>
             <table id="tbl-history">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Description</th>
-                        <th>Amount</th>
-                        <th>Balance</th>
-                    </tr>
-                </thead>
+                <thead><tr><th>Date</th><th>Desc</th><th>Amount</th><th>Balance</th></tr></thead>
                 <tbody></tbody>
             </table>
         </div>
@@ -78,38 +77,47 @@
 
     <div id="pg-rec" class="page">
         <div class="card">
-            <h3>Add Recurring</h3>
-            <input type="text" id="in-rec-desc" placeholder="Netflix">
+            <h3 id="rec-head">Add Recurring Payment</h3>
+            <input type="hidden" id="edit-rec-id" value="">
+            <input type="text" id="in-rec-desc" placeholder="e.g. Netflix">
             <input type="number" id="in-rec-amt" placeholder="£">
             <select id="sel-rec-bank"></select>
             <select id="sel-rec-cat"></select>
             <input type="date" id="in-rec-date">
-            <button class="btn-go" onclick="doSaveRec()">Save Recurring</button>
+            <button class="btn-go" id="btn-rec-save" onclick="doSaveRec()">Save Template</button>
+            <button id="btn-rec-cancel" onclick="resetRecForm()" style="display:none; background:#ccc; border:none;">Cancel</button>
         </div>
-        <div class="card"><table id="tbl-rec"><tbody></tbody></table></div>
+        <div class="card">
+            <table id="tbl-rec"><thead><tr><th>Name</th><th>£</th><th>Bank/Cat</th><th>Action</th></tr></thead><tbody></tbody></table>
+        </div>
     </div>
 
     <div id="pg-cats" class="page">
         <div class="card">
-            <h3>Categories</h3>
-            <input type="text" id="in-cat-name" placeholder="Food">
+            <h3 id="cat-head">Category Manager</h3>
+            <input type="hidden" id="edit-cat-id" value="">
+            <input type="text" id="in-cat-name" placeholder="e.g. Shopping">
             <select id="in-cat-type"><option value="exp">Expense</option><option value="inc">Income</option></select>
-            <button class="btn-go" onclick="doSaveCat()">Add Category</button>
+            <button class="btn-go" id="btn-cat-save" onclick="doSaveCat()">Add Category</button>
+            <button id="btn-cat-cancel" onclick="resetCatForm()" style="display:none; background:#ccc; border:none;">Cancel</button>
         </div>
-        <div class="card"><table id="tbl-cat"><tbody></tbody></table></div>
+        <div class="card">
+            <table id="tbl-cat"><thead><tr><th>Name</th><th>Type</th><th>Action</th></tr></thead><tbody></tbody></table>
+        </div>
     </div>
 
     <div id="pg-sett" class="page">
         <div class="card">
-            <h3>Security</h3>
-            <input type="password" id="in-pin" placeholder="Update PIN">
+            <h3>Account Settings</h3>
+            <input type="password" id="in-pin" placeholder="Set New PIN">
             <button class="btn-go" onclick="doSavePin()">Update PIN</button>
         </div>
+        <button onclick="if(confirm('Wipe All?')){localStorage.clear();location.reload();}" style="background:red; color:white; border:none; padding:15px; border-radius:8px; cursor:pointer;">WIPE ALL DATA</button>
     </div>
 </div>
 
 <script>
-    const STORAGE_KEY = 'FINANCE_VAULT_V80';
+    const STORAGE_KEY = 'FINANCE_VAULT_V85';
     let vault = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
         banks: [], cats: [{id: 1, name: "Salary", type: "inc"}, {id: 2, name: "Rent", type: "exp"}],
         recs: [], txs: [], pin: "1234"
@@ -118,8 +126,7 @@
     function sync() { localStorage.setItem(STORAGE_KEY, JSON.stringify(vault)); draw(); }
 
     function goTo(pageId) {
-        let pages = document.getElementsByClassName('page');
-        for (let i = 0; i < pages.length; i++) pages[i].style.display = 'none';
+        document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
         document.getElementById(pageId).style.display = 'block';
         draw();
     }
@@ -128,7 +135,33 @@
     function doAddBank() {
         let n = document.getElementById('in-bank-name').value;
         let b = parseFloat(document.getElementById('in-bank-bal').value);
-        if(n && !isNaN(b)) { vault.banks.push({id: Date.now(), name: n, initial: b}); sync(); }
+        if(n && !isNaN(b)) { vault.banks.push({id: Date.now(), name: n, initial: b}); sync(); document.getElementById('in-bank-name').value=""; document.getElementById('in-bank-bal').value=""; }
+    }
+
+    function doSaveCat() {
+        let n = document.getElementById('in-cat-name').value;
+        let t = document.getElementById('in-cat-type').value;
+        let eid = document.getElementById('edit-cat-id').value;
+        if(n) {
+            if(eid) { let c = vault.cats.find(x => x.id == eid); c.name = n; c.type = t; }
+            else { vault.cats.push({id: Date.now(), name: n, type: t}); }
+            resetCatForm(); sync();
+        }
+    }
+
+    function doSaveRec() {
+        let d = document.getElementById('in-rec-desc').value;
+        let a = parseFloat(document.getElementById('in-rec-amt').value);
+        let b = document.getElementById('sel-rec-bank').value;
+        let c = document.getElementById('sel-rec-cat').value;
+        let date = document.getElementById('in-rec-date').value;
+        let eid = document.getElementById('edit-rec-id').value;
+        if(d && !isNaN(a)) {
+            let obj = {id: eid ? parseInt(eid) : Date.now(), desc: d, amt: a, bank: b, cat: c, next: date};
+            if(eid) { vault.recs = vault.recs.map(r => r.id == eid ? obj : r); }
+            else { vault.recs.push(obj); }
+            resetRecForm(); sync();
+        }
     }
 
     function doAddTx() {
@@ -136,70 +169,6 @@
         let a = parseFloat(document.getElementById('tx-amt').value);
         let b = document.getElementById('sel-tx-bank').value;
         let cName = document.getElementById('sel-tx-cat').value;
-        let date = document.getElementById('tx-date').value || new Date().toISOString().split('T')[0];
-        if(d && !isNaN(a)) {
-            let cat = vault.cats.find(x => x.name === cName);
-            vault.txs.push({id: Date.now(), date: date, desc: d, amt: a, bank: b, type: cat ? cat.type : 'exp'});
-            sync();
-        }
-    }
-
-    function doSaveCat() { /* Same as v75 logic */ }
-    function doSaveRec() { /* Same as v75 logic */ }
-
-    // RENDER ENGINE
-    function draw() {
-        // Balances
-        let bBox = document.getElementById('box-bal');
-        bBox.innerHTML = "";
-        vault.banks.forEach(b => {
-            let net = vault.txs.filter(t => t.bank === b.name).reduce((s, t) => s + (t.type === 'inc' ? t.amt : -t.amt), 0);
-            bBox.innerHTML += `<div class="bal-card">${b.name}<br>£${(b.initial + net).toFixed(2)}</div>`;
-        });
-
-        // Dropdowns
-        let bOpts = vault.banks.map(b => `<option value="${b.name}">${b.name}</option>`).join('');
-        let cOpts = vault.cats.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
-        document.getElementById('sel-tx-bank').innerHTML = bOpts;
-        document.getElementById('sel-rec-bank').innerHTML = bOpts;
-        document.getElementById('sel-tx-cat').innerHTML = cOpts;
-        document.getElementById('sel-rec-cat').innerHTML = cOpts;
-        
-        // Ledger Filter Dropdown
-        let filterVal = document.getElementById('sel-filter-bank').value;
-        document.getElementById('sel-filter-bank').innerHTML = '<option value="">-- Select Bank --</option>' + bOpts;
-        document.getElementById('sel-filter-bank').value = filterVal;
-
-        // Draw Ledger (Running Balance)
-        let histBody = document.querySelector('#tbl-history tbody');
-        histBody.innerHTML = "";
-        
-        if (filterVal) {
-            let bank = vault.banks.find(b => b.name === filterVal);
-            let filteredTxs = vault.txs.filter(t => t.bank === filterVal).sort((a, b) => new Date(a.date) - new Date(b.date));
-            
-            let currentRunningBal = bank.initial;
-            filteredTxs.forEach(t => {
-                let change = (t.type === 'inc' ? t.amt : -t.amt);
-                currentRunningBal += change;
-                histBody.innerHTML += `
-                    <tr>
-                        <td>${t.date}</td>
-                        <td>${t.desc}</td>
-                        <td class="${t.type === 'inc' ? 'pos' : 'neg'}">${t.type === 'inc' ? '+' : '-'}£${t.amt.toFixed(2)}</td>
-                        <td>£${currentRunningBal.toFixed(2)}</td>
-                    </tr>
-                `;
-            });
-        } else {
-            histBody.innerHTML = '<tr><td colspan="4">Please select a bank account to view history.</td></tr>';
-        }
-    }
-
-    window.onload = () => {
-        document.getElementById('tx-date').valueAsDate = new Date();
-        draw();
-    };
-</script>
-</body>
-</html>
+        let date = document.getElementById('tx-date').value;
+        if(d && !isNaN(a) && b && cName) {
+            let cat = vault.cats.find(x

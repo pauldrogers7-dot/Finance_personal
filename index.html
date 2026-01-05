@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finance Pro: Cash Flow Forecast (£)</title>
+    <title>Finance Pro: Post Recurring (£)</title>
     <style>
         :root { --primary: #2c3e50; --success: #27ae60; --danger: #e74c3c; --accent: #3498db; --warning: #f39c12; }
         body { font-family: 'Segoe UI', sans-serif; max-width: 1400px; margin: 0 auto; background: #f0f2f5; padding: 20px; display: flex; flex-wrap: wrap; gap: 20px; }
@@ -20,8 +20,9 @@
         th, td { padding: 10px; text-align: left; border-bottom: 1px solid #f0f0f0; }
         button { cursor: pointer; border: none; border-radius: 6px; padding: 8px; font-weight: bold; }
         .btn-add { background: var(--primary); color: white; }
+        .btn-post { background: var(--success); color: white; padding: 5px 10px; font-size: 0.8em; }
+        .due-item { display: flex; justify-content: space-between; align-items: center; background: #fff9e6; border: 1px solid #ffeeba; padding: 10px; border-radius: 6px; margin-bottom: 8px; font-size: 0.85em; }
         .forecast-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dotted #ccc; font-size: 0.9em; }
-        .projection-active { background: #e8f4fd; border-left: 4px solid var(--accent); padding: 10px; border-radius: 4px; }
     </style>
 </head>
 <body>
@@ -36,21 +37,14 @@
 
 <div class="main-content">
     <div class="card-panel">
-        <h2>Live Account Balances</h2>
+        <h2>Bank Balances</h2>
         <div id="accounts-display" class="stats-grid"></div>
     </div>
 
-    <div class="card-panel">
-        <h3>Cash Flow Forecast</h3>
-        <div style="margin-bottom: 15px;">
-            <label>View Projection For: </label>
-            <select id="forecast-period" onchange="render()">
-                <option value="1">1 Month</option>
-                <option value="3">3 Months</option>
-                <option value="6">6 Months</option>
-            </select>
-        </div>
-        <div id="forecast-display" class="projection-active"></div>
+    <div class="card-panel" style="border-left: 5px solid var(--warning);">
+        <h3>Due to Post</h3>
+        <p style="font-size: 0.8em; color: #666; margin-bottom: 15px;">Recurring items ready to be posted to your bank account history:</p>
+        <div id="due-now-list"></div>
     </div>
 
     <div class="card-panel">
@@ -66,44 +60,36 @@
 
 <div class="side-content">
     <div class="card-panel">
-        <h3>Add Recurring Template</h3>
+        <h3>Cash Flow Forecast</h3>
+        <select id="forecast-period" onchange="render()" style="width:100%; margin-bottom:10px;">
+            <option value="1">1 Month Forecast</option>
+            <option value="3">3 Months Forecast</option>
+            <option value="6">6 Months Forecast</option>
+        </select>
+        <div id="forecast-display"></div>
+    </div>
+
+    <div class="card-panel">
+        <h3>Recurring Templates</h3>
         <form onsubmit="addTemplate(event)">
-            <input type="text" id="rec-desc" placeholder="Desc (e.g. Salary)" required class="full-width">
+            <input type="text" id="rec-desc" placeholder="Desc" required class="full-width">
             <input type="number" id="rec-amt" placeholder="Amount £" step="0.01" required>
-            <input type="date" id="rec-start" required title="Next Payment Date">
+            <input type="date" id="rec-start" required>
             <select id="rec-freq">
                 <option value="7">Weekly</option>
                 <option value="14">Bi-Weekly</option>
                 <option value="30">Monthly</option>
             </select>
-            <select id="rec-acc"></select>
+            <select id="rec-acc" class="full-width"></select>
             <select id="rec-cat" class="full-width"></select>
-            <button class="btn-add full-width">Add to Forecast</button>
+            <button class="btn-add full-width">Save Template</button>
         </form>
         <div id="template-list" style="margin-top:10px;"></div>
     </div>
 
     <div class="card-panel">
-        <h3>One-Off Transaction</h3>
-        <form id="tx-form">
-            <input type="text" id="desc" placeholder="Description" required>
-            <input type="number" id="amt" placeholder="Amount" step="0.01" required>
-            <input type="date" id="date" required>
-            <select id="acc-select"></select>
-            <select id="cat-select" class="full-width"></select>
-            <button type="submit" class="btn-add full-width">Post Transaction</button>
-        </form>
-    </div>
-
-    <div class="card-panel">
-        <h3>Accounts</h3>
-        <form onsubmit="upsertAccount(event)" style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">
-            <input type="text" id="new-acc-name" placeholder="Name" required>
-            <input type="number" id="new-acc-open" placeholder="Opening £" step="0.01" required>
-            <button class="btn-add full-width">Set Bal</button>
-        </form>
-        <button onclick="exportCSV()" style="width:100%; background:var(--success); color:white; margin-top:10px;">Export CSV</button>
-        <button onclick="lock()" style="width:100%; background:var(--danger); color:white; margin-top:5px;">Lock</button>
+        <button onclick="exportCSV()" style="width:100%; background:var(--success); color:white; margin-bottom:5px;">Export CSV</button>
+        <button onclick="lock()" style="width:100%; background:var(--danger); color:white;">Lock Dashboard</button>
     </div>
 </div>
 
@@ -113,14 +99,14 @@
     function lock() { sessionStorage.removeItem('auth'); location.reload(); }
     if(sessionStorage.getItem('auth') === 'ok') document.getElementById('lock-screen').style.display = 'none';
 
-    let data = JSON.parse(localStorage.getItem('fin_v6')) || {
-        accounts: { "Main Bank": 0 },
+    let data = JSON.parse(localStorage.getItem('fin_v7')) || {
+        accounts: { "Current Account": 0 },
         categories: { inc: ["Salary"], exp: ["Rent", "Food", "Leisure", "Utilities", "Bills"] },
         txs: [],
         templates: [] 
     };
 
-    function sync() { localStorage.setItem('fin_v6', JSON.stringify(data)); render(); }
+    function sync() { localStorage.setItem('fin_v7', JSON.stringify(data)); render(); }
 
     function addTemplate(e) {
         e.preventDefault();
@@ -136,39 +122,35 @@
         e.target.reset(); sync();
     }
 
-    function removeTemplate(id) { data.templates = data.templates.filter(t => t.id !== id); sync(); }
-
-    function upsertAccount(e) {
-        e.preventDefault();
-        data.accounts[document.getElementById('new-acc-name').value] = parseFloat(document.getElementById('new-acc-open').value);
-        e.target.reset(); sync();
+    // THIS FUNCTION POSTS THE RECURRING ITEM TO CONFIRMED TRANSACTIONS
+    function postRecurring(templateId, dateStr) {
+        const temp = data.templates.find(t => t.id === templateId);
+        if (temp) {
+            data.txs.push({
+                id: Date.now() + Math.random(),
+                date: dateStr,
+                acc: temp.acc,
+                desc: temp.desc,
+                amt: temp.amt,
+                cat: temp.cat,
+                type: data.categories.inc.includes(temp.cat) ? 'inc' : 'exp'
+            });
+            // Update the template start date to the next period so it doesn't show as due again
+            let next = new Date(dateStr);
+            next.setDate(next.getDate() + temp.freq);
+            temp.startDate = next.toISOString().slice(0, 10);
+            sync();
+        }
     }
-
-    document.getElementById('tx-form').onsubmit = (e) => {
-        e.preventDefault();
-        const cat = document.getElementById('cat-select').value;
-        data.txs.push({
-            id: Date.now(),
-            date: document.getElementById('date').value,
-            acc: document.getElementById('acc-select').value,
-            desc: document.getElementById('desc').value,
-            amt: parseFloat(document.getElementById('amt').value),
-            cat: cat,
-            type: data.categories.inc.includes(cat) ? 'inc' : 'exp'
-        });
-        sync(); e.target.reset(); document.getElementById('date').valueAsDate = new Date();
-    };
 
     function render() {
         const accs = Object.keys(data.accounts);
-        const cats = [...data.categories.inc, ...data.categories.exp];
-        
-        // Update UI Selects
-        ['acc-select', 'rec-acc'].forEach(id => document.getElementById(id).innerHTML = accs.map(a => `<option value="${a}">${a}</option>`).join(''));
-        ['cat-select', 'rec-cat'].forEach(id => {
-            document.getElementById(id).innerHTML = `<optgroup label="Income">${data.categories.inc.map(c => `<option value="${c}">${c}</option>`).join('')}</optgroup>
-                                                      <optgroup label="Expenses">${data.categories.exp.map(c => `<option value="${c}">${c}</option>`).join('')}</optgroup>`;
-        });
+        const today = new Date();
+        today.setHours(0,0,0,0);
+
+        // Update Selects
+        document.getElementById('rec-acc').innerHTML = accs.map(a => `<option value="${a}">${a}</option>`).join('');
+        document.getElementById('rec-cat').innerHTML = [...data.categories.inc, ...data.categories.exp].map(c => `<option value="${c}">${c}</option>`).join('');
 
         // 1. Current Balances
         const accDisplay = document.getElementById('accounts-display');
@@ -180,51 +162,55 @@
             accDisplay.innerHTML += `<div class="stat-card" style="background:var(--accent)">${name}<br><strong>£${currentTotals[name].toFixed(2)}</strong></div>`;
         });
 
-        // 2. Forecasting Engine
-        const monthsAhead = parseInt(document.getElementById('forecast-period').value);
-        const forecastDisplay = document.getElementById('forecast-display');
-        let forecastDate = new Date();
-        forecastDate.setMonth(forecastDate.getMonth() + monthsAhead);
-        
-        let projectedTotals = {...currentTotals};
-        let forecastLog = [];
-
-        data.templates.forEach(temp => {
-            let nextDate = new Date(temp.startDate);
-            const isInc = data.categories.inc.includes(temp.cat);
-            
-            while(nextDate <= forecastDate) {
-                // If the date is in the future, add to projection
-                if (nextDate > new Date()) {
-                    projectedTotals[temp.acc] += isInc ? temp.amt : -temp.amt;
-                    forecastLog.push({ date: new Date(nextDate), desc: temp.desc, amt: temp.amt, isInc });
-                }
-                nextDate.setDate(nextDate.getDate() + temp.freq);
+        // 2. Due to Post Section
+        const dueList = document.getElementById('due-now-list');
+        dueList.innerHTML = '';
+        data.templates.forEach(t => {
+            let itemDate = new Date(t.startDate);
+            if (itemDate <= today) {
+                dueList.innerHTML += `
+                    <div class="due-item">
+                        <span><strong>${t.desc}</strong><br>Due: ${t.startDate} (£${t.amt})</span>
+                        <button onclick="postRecurring(${t.id}, '${t.startDate}')" class="btn-post">Confirm & Post</button>
+                    </div>`;
             }
         });
+        if (dueList.innerHTML === '') dueList.innerHTML = '<p style="font-size:0.85em; color:green;">✓ No recurring payments due today.</p>';
 
-        forecastDisplay.innerHTML = `<h4>Projected Balances (in ${monthsAhead} months):</h4>`;
-        for (const [acc, bal] of Object.entries(projectedTotals)) {
-            forecastDisplay.innerHTML += `<div class="forecast-row"><strong>${acc}</strong> <span>£${bal.toFixed(2)}</span></div>`;
-        }
-
-        // 3. Template List
-        document.getElementById('template-list').innerHTML = data.templates.map(t => `
-            <div style="font-size:0.75em; display:flex; justify-content:space-between; padding:5px; border-bottom:1px solid #eee;">
-                <span>${t.desc} (£${t.amt}) - Every ${t.freq} days</span>
-                <button onclick="removeTemplate(${t.id})" style="color:red; background:none;">&times;</button>
-            </div>
+        // 3. Forecast
+        const monthsAhead = parseInt(document.getElementById('forecast-period').value);
+        let forecastDate = new Date();
+        forecastDate.setMonth(forecastDate.getMonth() + monthsAhead);
+        let projected = {...currentTotals};
+        data.templates.forEach(temp => {
+            let next = new Date(temp.startDate);
+            const isInc = data.categories.inc.includes(temp.cat);
+            while(next <= forecastDate) {
+                projected[temp.acc] += isInc ? temp.amt : -temp.amt;
+                next.setDate(next.getDate() + temp.freq);
+            }
+        });
+        document.getElementById('forecast-display').innerHTML = accs.map(a => `
+            <div class="forecast-row"><span>${a}</span> <strong>£${projected[a].toFixed(2)}</strong></div>
         `).join('');
 
-        // 4. Confirmed Table
+        // 4. Confirmed List
         const list = document.getElementById('tx-list');
         list.innerHTML = '';
-        data.txs.sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 15).forEach(t => {
+        data.txs.sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 10).forEach(t => {
             const row = list.insertRow();
             row.innerHTML = `<td>${t.date}</td><td>${t.acc}</td><td>${t.desc}</td>
                              <td style="color:${t.type === 'inc' ? 'green' : 'red'}">£${t.amt.toFixed(2)}</td>
                              <td><button onclick="data.txs = data.txs.filter(x=>x.id!==${t.id}); sync();" style="color:red; background:none;">&times;</button></td>`;
         });
+
+        // 5. Template Management
+        document.getElementById('template-list').innerHTML = data.templates.map(t => `
+            <div style="font-size:0.75em; display:flex; justify-content:space-between; padding:5px; border-bottom:1px solid #eee;">
+                <span>${t.desc} (£${t.amt}) - Next: ${t.startDate}</span>
+                <button onclick="data.templates = data.templates.filter(x=>x.id!==${t.id}); sync();" style="color:red; background:none;">&times;</button>
+            </div>
+        `).join('');
     }
 
     function exportCSV() {
@@ -232,7 +218,12 @@
         window.open('data:text/csv;charset=utf-8,' + encodeURI(csv));
     }
 
-    document.getElementById('date').valueAsDate = new Date();
+    function upsertAccount(e) {
+        e.preventDefault();
+        data.accounts[document.getElementById('new-acc-name').value] = parseFloat(document.getElementById('new-acc-open').value);
+        e.target.reset(); sync();
+    }
+
     document.getElementById('rec-start').valueAsDate = new Date();
     render();
 </script>

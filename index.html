@@ -2,156 +2,161 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>FinanceVault: v90 Stable Ledger</title>
+    <title>FinanceVault: v100 Absolute Zero</title>
     <style>
-        :root { --primary: #2c3e50; --success: #27ae60; --accent: #3498db; --danger: #e74c3c; }
         body { font-family: sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
-        .navbar { background: var(--primary); padding: 10px; display: flex; gap: 10px; }
-        .nav-btn { color: white; background: rgba(255,255,255,0.1); border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .nav { background: #2c3e50; padding: 10px; display: flex; gap: 10px; }
+        .n-btn { color: white; background: #34495e; border: none; padding: 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
         .page { display: none; padding: 20px; }
-        .container { max-width: 1000px; margin: 0 auto; }
-        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        .bal-grid { display: flex; gap: 10px; flex-wrap: wrap; }
-        /* Simple Blue Card */
-        .bal-card { background: var(--accent); color: white; padding: 15px; border-radius: 8px; min-width: 130px; text-align: center; cursor: pointer; border: none; font-weight: bold; }
-        input, select, button { width: 100%; padding: 12px; margin: 5px 0; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; font-size: 16px; }
-        .btn-go { background: var(--success); color: white; border: none; cursor: pointer; font-weight: bold; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; max-width: 900px; margin-left: auto; margin-right: auto; }
+        .bal-card { background: #3498db; color: white; padding: 15px; border-radius: 6px; display: inline-block; margin: 5px; border: none; font-weight: bold; min-width: 120px; cursor: pointer; }
+        input, select, button { width: 100%; padding: 10px; margin: 5px 0; box-sizing: border-box; }
+        .btn-grn { background: #27ae60; color: white; border: none; font-weight: bold; cursor: pointer; }
         table { width: 100%; border-collapse: collapse; }
-        td, th { text-align: left; padding: 12px; border-bottom: 1px solid #eee; }
-        .red { color: var(--danger); }
-        .grn { color: var(--success); }
+        th, td { border-bottom: 1px solid #ddd; padding: 10px; text-align: left; }
     </style>
 </head>
 <body>
 
-<div class="navbar">
-    <button class="nav-btn" onclick="openPage('pg-dash')">Dashboard</button>
-    <button class="nav-btn" onclick="openPage('pg-rec')">Recurring</button>
-    <button class="nav-btn" onclick="openPage('pg-cats')">Categories</button>
-    <button class="nav-btn" onclick="openPage('pg-sett')">Settings</button>
+<div class="nav">
+    <button class="n-btn" onclick="sh('p1')">Dashboard</button>
+    <button class="n-btn" onclick="sh('p2')">Recurring</button>
+    <button class="n-btn" onclick="sh('p3')">Categories</button>
+    <button class="n-btn" onclick="sh('p4')">Settings</button>
 </div>
 
-<div class="container">
-    <div id="pg-dash" class="page" style="display:block;">
-        <div class="card">
-            <h3>Bank Balances <small>(Click card to see history)</small></h3>
-            <div id="draw-bal" class="bal-grid"></div>
-        </div>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-            <div class="card">
-                <h3>Post Transaction</h3>
-                <input type="date" id="in-tx-date">
-                <input type="text" id="in-tx-desc" placeholder="Description">
-                <input type="number" id="in-tx-amt" placeholder="Amount £">
-                <select id="pick-tx-bank"></select>
-                <select id="pick-tx-cat"></select>
-                <button class="btn-go" onclick="addTx()">Post Payment</button>
-            </div>
-            <div class="card">
-                <h3>Add Bank</h3>
-                <input type="text" id="in-new-bank" placeholder="Bank Name">
-                <input type="number" id="in-new-bal" placeholder="Opening Balance £">
-                <button class="btn-go" onclick="addBank()" style="background:var(--primary)">Create Bank</button>
-            </div>
-        </div>
-
-        <div class="card">
-            <h3>Ledger: <span id="ledger-name">Select Account</span></h3>
-            <select id="pick-ledger-bank" onchange="render()"></select>
-            <table>
-                <thead><tr><th>Date</th><th>Desc</th><th>Amt</th><th>Running</th></tr></thead>
-                <tbody id="draw-history"></tbody>
-            </table>
-        </div>
+<div id="p1" class="page" style="display:block;">
+    <div class="card">
+        <h3>Bank Balances</h3>
+        <div id="out-bal"></div>
     </div>
-
-    <div id="pg-rec" class="page">
-        <div class="card">
-            <h3>Add Recurring</h3>
-            <input type="text" id="in-rec-desc" placeholder="Netflix">
-            <input type="number" id="in-rec-amt" placeholder="£">
-            <select id="pick-rec-bank"></select>
-            <select id="pick-rec-cat"></select>
-            <input type="date" id="in-rec-date">
-            <button class="btn-go" onclick="addRec()">Save Template</button>
-        </div>
-        <div class="card">
-            <table><thead><tr><th>Name</th><th>£</th><th>Action</th></tr></thead><tbody id="draw-rec"></tbody></table>
-        </div>
+    <div class="card">
+        <h3>Add Bank</h3>
+        <input type="text" id="bn" placeholder="Bank Name">
+        <input type="number" id="ba" placeholder="Initial Balance £">
+        <button class="btn-grn" onclick="addB()">Save Bank</button>
     </div>
-
-    <div id="pg-cats" class="page">
-        <div class="card">
-            <h3>Manage Categories</h3>
-            <input type="text" id="in-cat-name" placeholder="Food/Bills">
-            <select id="in-cat-type"><option value="exp">Expense</option><option value="inc">Income</option></select>
-            <button class="btn-go" onclick="addCat()">Add Category</button>
-        </div>
-        <div class="card">
-            <table><thead><tr><th>Name</th><th>Type</th><th>Action</th></tr></thead><tbody id="draw-cat"></tbody></table>
-        </div>
+    <div class="card">
+        <h3>Transaction History</h3>
+        <select id="sel-b" onchange="draw()"></select>
+        <table>
+            <thead><tr><th>Date</th><th>Desc</th><th>Amt</th><th>Running</th></tr></thead>
+            <tbody id="out-his"></tbody>
+        </table>
     </div>
+</div>
 
-    <div id="pg-sett" class="page">
-        <div class="card">
-            <h3>Security</h3>
-            <input type="password" id="in-pin" placeholder="Enter New PIN">
-            <button class="btn-go" onclick="savePin()">Update PIN</button>
-        </div>
-        <button onclick="localStorage.clear(); location.reload();" style="background:red; color:white; border:none; padding:10px; cursor:pointer; border-radius:5px;">WIPE ALL DATA</button>
+<div id="p2" class="page">
+    <div class="card">
+        <h3>Add Recurring</h3>
+        <input type="text" id="rd" placeholder="Description">
+        <input type="number" id="ra" placeholder="£ Amount">
+        <select id="rb"></select>
+        <select id="rc"></select>
+        <button class="btn-grn" onclick="addR()">Save Recurring</button>
     </div>
+    <div class="card">
+        <table id="tbl-r"><thead><tr><th>Desc</th><th>£</th></tr></thead><tbody id="out-rec"></tbody></table>
+    </div>
+</div>
+
+<div id="p3" class="page">
+    <div class="card">
+        <h3>Categories</h3>
+        <input type="text" id="cn" placeholder="Name">
+        <select id="ct"><option value="exp">Expense</option><option value="inc">Income</option></select>
+        <button class="btn-grn" onclick="addC()">Add Category</button>
+    </div>
+    <div class="card">
+        <table id="tbl-c"><thead><tr><th>Name</th><th>Type</th></tr></thead><tbody id="out-cat"></tbody></table>
+    </div>
+</div>
+
+<div id="p4" class="page">
+    <div class="card">
+        <h3>Update PIN</h3>
+        <p>Manage your PIN directly from the "Account Settings" menu.</p>
+        <input type="password" id="pn" placeholder="New PIN">
+        <button class="btn-grn" onclick="upP()">Save PIN</button>
+    </div>
+    <button onclick="localStorage.clear();location.reload();" style="color:red;padding:10px;">RESET ALL DATA</button>
 </div>
 
 <script>
-    const DB_KEY = 'FINANCE_STABLE_V90';
-    let db = JSON.parse(localStorage.getItem(DB_KEY)) || {
-        banks: [], cats: [{id:1, name:"Salary", type:"inc"}, {id:2, name:"Rent", type:"exp"}],
-        recs: [], txs: [], pin: "1234"
-    };
+    var KEY = 'FV_V100';
+    var db = { banks: [], cats: [{n:"Salary", t:"inc"}, {n:"Rent", t:"exp"}], recs: [], txs: [], pin: "1234" };
 
-    function save() { localStorage.setItem(DB_KEY, JSON.stringify(db)); render(); }
+    // Load Data safely
+    var saved = localStorage.getItem(KEY);
+    if (saved) { db = JSON.parse(saved); }
 
-    function openPage(id) {
-        let p = document.getElementsByClassName('page');
-        for(let i=0; i<p.length; i++) p[i].style.display = 'none';
+    function sync() {
+        localStorage.setItem(KEY, JSON.stringify(db));
+        draw();
+    }
+
+    // Tab Switcher (The most basic possible way)
+    function sh(id) {
+        document.getElementById('p1').style.display = 'none';
+        document.getElementById('p2').style.display = 'none';
+        document.getElementById('p3').style.display = 'none';
+        document.getElementById('p4').style.display = 'none';
         document.getElementById(id).style.display = 'block';
-        render();
+        draw();
     }
 
-    // ACTIONS
-    function addBank() {
-        let n = document.getElementById('in-new-bank').value;
-        let b = parseFloat(document.getElementById('in-new-bal').value);
-        if(n && !isNaN(b)) { db.banks.push({name: n, initial: b}); save(); }
-    }
-
-    function addCat() {
-        let n = document.getElementById('in-cat-name').value;
-        let t = document.getElementById('in-cat-type').value;
-        if(n) { db.cats.push({id: Date.now(), name: n, type: t}); save(); }
-    }
-
-    function addRec() {
-        let d = document.getElementById('in-rec-desc').value;
-        let a = parseFloat(document.getElementById('in-rec-amt').value);
-        let b = document.getElementById('pick-rec-bank').value;
-        let c = document.getElementById('pick-rec-cat').value;
-        let date = document.getElementById('in-rec-date').value;
-        if(d && !isNaN(a)) { db.recs.push({id: Date.now(), desc: d, amt: a, bank: b, cat: c, next: date}); save(); }
-    }
-
-    function addTx() {
-        let d = document.getElementById('in-tx-desc').value;
-        let a = parseFloat(document.getElementById('in-tx-amt').value);
-        let b = document.getElementById('pick-tx-bank').value;
-        let cN = document.getElementById('pick-tx-cat').value;
-        let dt = document.getElementById('in-tx-date').value || new Date().toISOString().split('T')[0];
-        if(d && !isNaN(a)) {
-            let cat = db.cats.find(x => x.name == cN);
-            db.txs.push({id: Date.now(), date: dt, desc: d, amt: a, bank: b, type: cat?cat.type:'exp'});
-            save();
+    function addB() {
+        var n = document.getElementById('bn').value;
+        var a = parseFloat(document.getElementById('ba').value);
+        if(n && !isNaN(a)) {
+            db.banks.push({n: n, i: a});
+            document.getElementById('bn').value = "";
+            document.getElementById('ba').value = "";
+            sync();
         }
     }
 
-    function savePin() { db.pin = document.getElementById('in-pin').value
+    function addC() {
+        var n = document.getElementById('cn').value;
+        var t = document.getElementById('ct').value;
+        if(n) { db.cats.push({n: n, t: t}); sync(); }
+    }
+
+    function upP() {
+        db.pin = document.getElementById('pn').value;
+        sync();
+        alert("PIN Updated");
+    }
+
+    function draw() {
+        // Balances
+        var bH = "";
+        for(var i=0; i<db.banks.length; i++) {
+            bH += '<button class="bal-card" onclick="document.getElementById(\'sel-b\').value=\''+db.banks[i].n+'\';draw()">' + db.banks[i].n + '<br>£' + db.banks[i].i.toFixed(2) + '</button>';
+        }
+        document.getElementById('out-bal').innerHTML = bH || "Add a bank account.";
+
+        // Dropdowns
+        var bO = ""; for(var j=0; j<db.banks.length; j++) { bO += '<option value="'+db.banks[j].n+'">'+db.banks[j].n+'</option>'; }
+        var cO = ""; for(var k=0; k<db.cats.length; k++) { cO += '<option value="'+db.cats[k].n+'">'+db.cats[k].n+'</option>'; }
+        
+        document.getElementById('rb').innerHTML = bO;
+        document.getElementById('rc').innerHTML = cO;
+        
+        var sB = document.getElementById('sel-b');
+        var cur = sB.value;
+        sB.innerHTML = '<option value="">-- Choose Account --</option>' + bO;
+        sB.value = cur;
+
+        // Categories List
+        var cH = "";
+        for(var l=0; l<db.cats.length; l++) {
+            cH += '<tr><td>'+db.cats[l].n+'</td><td>'+db.cats[l].t+'</td></tr>';
+        }
+        document.getElementById('out-cat').innerHTML = cH;
+    }
+
+    window.onload = draw;
+</script>
+</body>
+</html>

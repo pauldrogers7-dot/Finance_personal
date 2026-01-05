@@ -2,38 +2,40 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>FinanceVault: Shielded Edition</title>
+    <title>FinanceVault: v50 Stability</title>
     <style>
         :root { --primary: #2c3e50; --success: #27ae60; --danger: #e74c3c; --accent: #3498db; --warning: #f39c12; }
         body { font-family: system-ui, sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
         nav { background: var(--primary); color: white; padding: 10px; display: flex; gap: 10px; position: sticky; top: 0; z-index: 100; }
         .nav-btn { cursor: pointer; font-weight: bold; padding: 10px 15px; background: rgba(255,255,255,0.1); border-radius: 6px; border: none; color: white; }
-        .nav-btn.active { background: var(--accent); }
+        .nav-btn.active { background: var(--accent) !important; }
         .container { padding: 20px; max-width: 1000px; margin: 0 auto; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        
+        /* THE KEY FIX: Tab display logic */
         .page { display: none; }
-        .page.active { display: block; }
+        .page.active { display: block !important; }
+
         .bal-grid { display: flex; gap: 15px; flex-wrap: wrap; }
-        .bal-card { background: var(--accent); color: white; padding: 15px; border-radius: 10px; min-width: 140px; text-align: center; }
-        input, select, button { width: 100%; padding: 12px; margin: 5px 0; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box; }
+        .bal-card { background: var(--accent); color: white; padding: 15px; border-radius: 10px; min-width: 140px; text-align: center; font-weight: bold; box-shadow: 0 4px 10px rgba(52, 152, 219, 0.3); }
+        input, select, button { width: 100%; padding: 12px; margin: 5px 0; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box; font-size: 16px; }
         .btn-main { background: var(--success); color: white; border: none; font-weight: bold; cursor: pointer; }
-        .due-banner { background: #fff3cd; border: 1px solid #ffeeba; padding: 15px; border-radius: 8px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
         table { width: 100%; border-collapse: collapse; }
         th, td { text-align: left; padding: 12px; border-bottom: 1px solid #eee; }
     </style>
 </head>
 <body>
 
-<nav>
-    <button onclick="showPage('dash')" class="nav-btn active" id="btn-dash">Dashboard</button>
-    <button onclick="showPage('rec')" class="nav-btn" id="btn-rec">Recurring</button>
-    <button onclick="showPage('cats')" class="nav-btn" id="btn-cats">Categories</button>
-    <button onclick="showPage('sett')" class="nav-btn" id="btn-sett">Settings</button>
+<nav id="main-nav">
+    <button data-target="dash" class="nav-btn active">Dashboard</button>
+    <button data-target="rec" class="nav-btn">Recurring</button>
+    <button data-target="cats" class="nav-btn">Categories</button>
+    <button data-target="sett" class="nav-btn">Settings</button>
 </nav>
 
 <div class="container">
     
-    <div id="pg-dash" class="page active">
+    <section id="pg-dash" class="page active">
         <div id="alerts"></div>
         <div class="card">
             <h3>Bank Balances</h3>
@@ -43,108 +45,133 @@
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
             <div class="card">
                 <h3>New Transaction</h3>
-                <form onsubmit="handleTx(event)">
-                    <input type="text" id="tx-desc" placeholder="Description" required>
+                <form id="form-tx">
+                    <input type="text" id="tx-desc" placeholder="What was it for?" required>
                     <input type="number" id="tx-amt" placeholder="Amount £" step="0.01" required>
                     <select id="tx-acc-drop"></select>
                     <select id="tx-cat-drop"></select>
                     <input type="date" id="tx-date">
-                    <button type="submit" class="btn-main">Post Transaction</button>
+                    <button type="submit" class="btn-main">Record Now</button>
                 </form>
             </div>
             <div class="card">
-                <h3>Add Bank Account</h3>
-                <form onsubmit="handleAcc(event)">
+                <h3>New Bank Account</h3>
+                <form id="form-acc">
                     <input type="text" id="acc-name-in" placeholder="Bank Name" required>
-                    <input type="number" id="acc-bal-in" placeholder="Balance £" step="0.01" required>
-                    <button type="submit" style="background: var(--primary); color:white; border:none; font-weight:bold;">Create Bank</button>
+                    <input type="number" id="acc-bal-in" placeholder="Starting Balance £" step="0.01" required>
+                    <button type="submit" style="background: var(--primary); color:white;">Create Account</button>
                 </form>
             </div>
         </div>
-        <div class="card">
-            <h3>Recent History</h3>
-            <table id="hist-table"><tbody></tbody></table>
-        </div>
-    </div>
+    </section>
 
-    <div id="pg-rec" class="page">
+    <section id="pg-rec" class="page">
         <div class="card">
             <h3 id="tpl-head">Add Recurring Payment</h3>
-            <form onsubmit="handleTpl(event)">
+            <form id="form-tpl">
                 <input type="hidden" id="tpl-id">
-                <input type="text" id="tpl-desc" placeholder="Name (e.g. Netflix)" required>
-                <input type="number" id="tpl-amt" placeholder="£" step="0.01" required>
+                <input type="text" id="tpl-desc" placeholder="Netflix/Rent" required>
+                <input type="number" id="tpl-amt" placeholder="Amount £" step="0.01" required>
                 <select id="tpl-acc-drop"></select>
                 <select id="tpl-cat-drop"></select>
                 <input type="date" id="tpl-date" required>
-                <button type="submit" id="tpl-submit" class="btn-main">Save Recurring</button>
-                <button type="button" onclick="resetTpl()" id="tpl-cancel" style="display:none; background:#ccc;">Cancel Edit</button>
+                <button type="submit" id="tpl-submit" class="btn-main">Save Template</button>
+                <button type="button" id="tpl-cancel" style="display:none; background:#ccc;">Cancel Edit</button>
             </form>
         </div>
         <div class="card">
-            <h3>Active Recurring List</h3>
-            <table id="tpl-table"><thead><tr><th>Desc</th><th>£</th><th>Date</th><th>Action</th></tr></thead><tbody></tbody></table>
+            <h3>Active Recurring Payments</h3>
+            <table id="tpl-table">
+                <thead><tr><th>Name</th><th>£</th><th>Next</th><th>Action</th></tr></thead>
+                <tbody></tbody>
+            </table>
         </div>
-    </div>
+    </section>
 
-    <div id="pg-cats" class="page">
+    <section id="pg-cats" class="page">
         <div class="card">
             <h3 id="cat-head">Add Category</h3>
-            <form onsubmit="handleCat(event)">
+            <form id="form-cat">
                 <input type="hidden" id="cat-id">
-                <input type="text" id="cat-name" placeholder="Name" required>
+                <input type="text" id="cat-name" placeholder="Category Name" required>
                 <select id="cat-type">
                     <option value="exp">Expense (-)</option>
                     <option value="inc">Income (+)</option>
                 </select>
-                <button type="submit" id="cat-submit" class="btn-main">Save Category</button>
-                <button type="button" onclick="resetCat()" id="cat-cancel" style="display:none; background:#ccc;">Cancel</button>
+                <button type="submit" id="cat-submit" class="btn-main">Create Category</button>
+                <button type="button" id="cat-cancel" style="display:none; background:#ccc;">Cancel</button>
             </form>
         </div>
         <div class="card">
-            <h3>All Categories</h3>
-            <table id="cat-table"><thead><tr><th>Name</th><th>Type</th><th>Action</th></tr></thead><tbody></tbody></table>
+            <h3>Manage Categories</h3>
+            <table id="cat-table">
+                <thead><tr><th>Name</th><th>Type</th><th>Action</th></tr></thead>
+                <tbody></tbody>
+            </table>
         </div>
-    </div>
+    </section>
 
-    <div id="pg-sett" class="page">
+    <section id="pg-sett" class="page">
         <div class="card">
             <h3>PIN Management</h3>
-            <input type="password" id="pin-new" placeholder="Enter New PIN">
-            <button onclick="handlePin()" class="btn-main">Update PIN</button>
+            <input type="password" id="pin-new" placeholder="Update PIN Code">
+            <button id="btn-pin-save" class="btn-main">Save PIN</button>
         </div>
-        <button onclick="if(confirm('Wipe everything?')){localStorage.clear();location.reload();}" style="background:var(--danger); color:white; border:none; padding:15px; border-radius:8px;">WIPE DATA</button>
-    </div>
+        <button id="btn-wipe" style="background:var(--danger); color:white; border:none; padding:15px; border-radius:8px;">NUCLEAR RESET</button>
+    </section>
 
 </div>
 
 <script>
-    const DB_KEY = 'FINANCE_STABLE_V45';
-    let db = JSON.parse(localStorage.getItem(DB_KEY)) || {
+    const KEY = 'FINANCE_STABLE_V50';
+    let db = JSON.parse(localStorage.getItem(KEY)) || {
         accounts: [], txs: [], templates: [], 
         categories: [{id: 1, name: "Salary", type: "inc"}, {id: 2, name: "Rent", type: "exp"}],
         pin: "1234"
     };
 
-    function save() { localStorage.setItem(DB_KEY, JSON.stringify(db)); render(); }
-
-    function showPage(p) {
-        document.querySelectorAll('.page').forEach(pg => pg.classList.remove('active'));
-        document.querySelectorAll('.nav-btn').forEach(nb => nb.classList.remove('active'));
-        document.getElementById('pg-' + p).classList.add('active');
-        document.getElementById('btn-' + p).classList.add('active');
+    // --- CORE ENGINE ---
+    function saveAndRender() {
+        localStorage.setItem(KEY, JSON.stringify(db));
         render();
     }
 
-    // HANDLERS
-    function handleAcc(e) { e.preventDefault(); db.accounts.push({name: document.getElementById('acc-name-in').value, initial: parseFloat(document.getElementById('acc-bal-in').value)}); e.target.reset(); save(); }
-    
-    function handleCat(e) {
-        e.preventDefault();
-        const id = document.getElementById('cat-id').value;
-        const name = document.getElementById('cat-name').value;
-        const type = document.getElementById('cat-type').value;
-        if(id) { db.categories = db.categories.map(c => c.id == id ? {id: parseInt(id), name, type} : c); }
-        else { db.categories.push({id: Date.now(), name, type}); }
-        resetCat(); save();
+    function render() {
+        // 1. Dropdowns
+        const aHtml = db.accounts.map(a => `<option value="${a.name}">${a.name}</option>`).join('');
+        const cHtml = db.categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+        document.getElementById('tx-acc-drop').innerHTML = aHtml;
+        document.getElementById('tpl-acc-drop').innerHTML = aHtml;
+        document.getElementById('tx-cat-drop').innerHTML = cHtml;
+        document.getElementById('tpl-cat-drop').innerHTML = cHtml;
+
+        // 2. Balances (The Blue Cards)
+        const balContainer = document.getElementById('render-bal');
+        balContainer.innerHTML = db.accounts.length === 0 ? "<em>No accounts found.</em>" : "";
+        db.accounts.forEach(acc => {
+            const net = db.txs.filter(t => t.acc === acc.name).reduce((s, t) => s + (t.type === 'inc' ? t.amt : -t.amt), 0);
+            const total = (acc.initial + net).toFixed(2);
+            balContainer.innerHTML += `<div class="bal-card">${acc.name}<br>£${total}</div>`;
+        });
+
+        // 3. Category Table
+        document.querySelector('#cat-table tbody').innerHTML = db.categories.map((c, i) => `
+            <tr><td>${c.name}</td><td>${c.type}</td>
+            <td><button onclick="editItem('cat', ${c.id})" style="width:auto; padding:5px; background:var(--accent);">Edit</button></td></tr>
+        `).join('');
+
+        // 4. Template Table
+        document.querySelector('#tpl-table tbody').innerHTML = db.templates.map((t, i) => `
+            <tr><td>${t.desc}</td><td>£${t.amt}</td><td>${t.nextDate}</td>
+            <td><button onclick="editItem('tpl', ${t.id})" style="width:auto; padding:5px; background:var(--accent);">Edit</button></td></tr>
+        `).join('');
     }
+
+    // --- PAGE SWITCHER (CENTRALIZED) ---
+    function switchTab(target) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        
+        document.getElementById('pg-' + target).classList.add('active');
+        document.querySelector(`[data-target="${target}"]`).classList.add('active');
+        render();

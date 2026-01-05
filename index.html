@@ -3,80 +3,89 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FinanceVault: Final Stable</title>
+    <title>FinanceVault: Array-Stable</title>
     <style>
         :root { --primary: #2c3e50; --success: #27ae60; --danger: #e74c3c; --accent: #3498db; }
         body { font-family: sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
-        nav { background: var(--primary); color: white; padding: 15px; display: flex; gap: 20px; }
-        .nav-link { cursor: pointer; font-weight: bold; padding: 8px; border-radius: 4px; background: rgba(255,255,255,0.1); }
+        nav { background: var(--primary); color: white; padding: 15px; display: flex; gap: 20px; align-items: center; }
+        .nav-link { cursor: pointer; font-weight: bold; padding: 8px 12px; border-radius: 4px; background: rgba(255,255,255,0.1); }
         .container { padding: 20px; max-width: 1000px; margin: 0 auto; }
         .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
         .page { display: none; }
         .page.active { display: block; }
-        .bal-grid { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 15px; }
-        .bal-card { background: var(--accent); color: white; padding: 15px; border-radius: 8px; min-width: 140px; text-align: center; }
-        input, select, button { width: 100%; padding: 12px; margin: 5px 0; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; }
+        .bal-grid { display: flex; gap: 15px; flex-wrap: wrap; margin-top: 10px; }
+        .bal-card { background: var(--accent); color: white; padding: 20px; border-radius: 8px; min-width: 160px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        input, select, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box; font-size: 16px; }
         button { cursor: pointer; background: var(--primary); color: white; border: none; font-weight: bold; }
         .btn-go { background: var(--success); }
         table { width: 100%; border-collapse: collapse; }
-        td, th { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
+        td, th { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
     </style>
 </head>
 <body>
 
 <nav>
+    <div style="font-weight: bold; color: var(--accent); font-size: 1.2em; margin-right: 10px;">FinanceVault</div>
     <div class="nav-link" onclick="showPage('dash')">DASHBOARD</div>
     <div class="nav-link" onclick="showPage('sett')">ACCOUNT SETTINGS</div>
 </nav>
 
 <div class="container">
     <div id="pg-dash" class="page active">
-        <div id="due-box"></div>
         <div class="card">
-            <h3>Balances</h3>
+            <h3>Bank Balances</h3>
             <div id="bal-area" class="bal-grid"></div>
         </div>
         
-        <div class="card">
-            <h3>New Transaction</h3>
-            <form onsubmit="addTx(event)">
-                <input type="text" id="tx-desc" placeholder="Description" required>
-                <input type="number" id="tx-amt" placeholder="Amount £" step="0.01" required>
-                <select id="tx-acc"></select>
-                <select id="tx-cat"></select>
-                <input type="date" id="tx-date" required>
-                <button class="btn-go">Post</button>
-            </form>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div class="card">
+                <h3>Record Payment</h3>
+                <form onsubmit="addTx(event)">
+                    <input type="text" id="tx-desc" placeholder="What was it for?" required>
+                    <input type="number" id="tx-amt" placeholder="Amount £" step="0.01" required>
+                    <select id="tx-acc"></select>
+                    <select id="tx-cat"></select>
+                    <input type="date" id="tx-date" required>
+                    <button class="btn-go">Post Now</button>
+                </form>
+            </div>
+            <div class="card">
+                <h3>Add Bank Account</h3>
+                <form onsubmit="addAcc(event)">
+                    <input type="text" id="acc-name" placeholder="e.g. Lloyds" required>
+                    <input type="number" id="acc-init" placeholder="Starting Balance £" step="0.01" required>
+                    <button type="submit" style="background: var(--accent);">Create Account</button>
+                </form>
+            </div>
         </div>
 
         <div class="card">
-            <h3>Bank Setup</h3>
-            <form onsubmit="addAcc(event)">
-                <input type="text" id="acc-name" placeholder="Bank Name" required>
-                <input type="number" id="acc-init" placeholder="Balance £" step="0.01" required>
-                <button>Create Bank</button>
-            </form>
-        </div>
-
-        <div class="card">
-            <h3>History</h3>
-            <table id="hist-table"><tbody></tbody></table>
+            <h3>Recent History</h3>
+            <table id="hist-table">
+                <thead><tr><th>Date</th><th>Desc</th><th>Amount</th><th>Account</th></tr></thead>
+                <tbody></tbody>
+            </table>
         </div>
     </div>
 
     <div id="pg-sett" class="page">
         <div class="card">
-            <h3>PIN Management</h3>
+            <h3>Security (PIN Management)</h3>
+            <p>Directly manage your access code below:</p>
             <input type="password" id="pin-new" placeholder="Enter New PIN">
-            <button onclick="changePin()">Save New PIN</button>
+            <button onclick="changePin()">Update PIN</button>
         </div>
 
         <div class="card">
-            <h3>Categories</h3>
-            <table id="cat-table"><tbody></tbody></table>
+            <h3>Category Manager</h3>
+            <table id="cat-table">
+                <thead><tr><th>Name</th><th>Type</th><th>Action</th></tr></thead>
+                <tbody></tbody>
+            </table>
             <hr>
+            <h4>Add New Category</h4>
             <form onsubmit="addCat(event)">
-                <input type="text" id="cat-new-name" placeholder="Name" required>
+                <input type="text" id="cat-new-name" placeholder="e.g. Shopping" required>
                 <select id="cat-new-type">
                     <option value="exp">Expense (-)</option>
                     <option value="inc">Income (+)</option>
@@ -85,39 +94,55 @@
             </form>
         </div>
         
-        <button onclick="localStorage.clear(); location.reload();" style="background:var(--danger)">Reset All Data</button>
+        <button onclick="localStorage.clear(); location.reload();" style="background:var(--danger); margin-top: 50px;">Delete All Data & Start Fresh</button>
     </div>
 </div>
 
 <script>
-    const DB_KEY = 'FINANCE_STABLE_V9';
-    let db = JSON.parse(localStorage.getItem(DB_KEY)) || {
-        accounts: {}, txs: [], pin: "1234",
-        categories: [{name:"Salary", type:"inc"}, {name:"Rent", type:"exp"}]
+    const STORAGE_KEY = 'FINANCE_STABLE_V12';
+    
+    // Load data or defaults
+    let db = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
+        accounts: [], // Switched to Array for stability
+        txs: [],
+        pin: "1234",
+        categories: [
+            {name: "Salary", type: "inc"},
+            {name: "Rent", type: "exp"},
+            {name: "Groceries", type: "exp"}
+        ]
     };
 
     function save() {
-        localStorage.setItem(DB_KEY, JSON.stringify(db));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
         render();
     }
 
     function showPage(p) {
-        document.getElementById('pg-dash').classList.remove('active');
-        document.getElementById('pg-sett').classList.remove('active');
-        document.getElementById('pg-' + p).classList.add('active');
+        document.getElementById('pg-dash').style.display = (p === 'dash') ? 'block' : 'none';
+        document.getElementById('pg-sett').style.display = (p === 'sett') ? 'block' : 'none';
         render();
     }
 
     function addAcc(e) {
         e.preventDefault();
-        db.accounts[document.getElementById('acc-name').value] = parseFloat(document.getElementById('acc-init').value);
-        save(); e.target.reset();
+        const name = document.getElementById('acc-name').value;
+        const bal = parseFloat(document.getElementById('acc-init').value);
+        
+        // Add to array
+        db.accounts.push({ name: name, initial: bal });
+        save();
+        e.target.reset();
     }
 
     function addCat(e) {
         e.preventDefault();
-        db.categories.push({name: document.getElementById('cat-new-name').value, type: document.getElementById('cat-new-type').value});
-        save(); e.target.reset();
+        db.categories.push({
+            name: document.getElementById('cat-new-name').value, 
+            type: document.getElementById('cat-new-type').value
+        });
+        save();
+        e.target.reset();
     }
 
     function addTx(e) {
@@ -131,39 +156,68 @@
             date: document.getElementById('tx-date').value,
             type: cat ? cat.type : 'exp'
         });
-        save(); e.target.reset();
+        save();
+        e.target.reset();
         document.getElementById('tx-date').valueAsDate = new Date();
     }
 
     function changePin() {
-        db.pin = document.getElementById('pin-new').value;
-        save();
-        alert("PIN Updated!");
-        document.getElementById('pin-new').value = "";
+        const newPin = document.getElementById('pin-new').value;
+        if(newPin) {
+            db.pin = newPin;
+            save();
+            alert("PIN successfully updated in settings.");
+            document.getElementById('pin-new').value = "";
+        }
     }
 
     function render() {
-        // Dropdowns
-        const accNames = Object.keys(db.accounts);
-        const catNames = db.categories.map(c => c.name);
+        // 1. Dropdowns
+        const accSelect = document.getElementById('tx-acc');
+        const catSelect = document.getElementById('tx-cat');
         
-        document.getElementById('tx-acc').innerHTML = accNames.map(n => `<option value="${n}">${n}</option>`).join('');
-        document.getElementById('tx-cat').innerHTML = catNames.map(n => `<option value="${n}">${n}</option>`).join('');
+        accSelect.innerHTML = db.accounts.map(a => `<option value="${a.name}">${a.name}</option>`).join('');
+        catSelect.innerHTML = db.categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
 
-        // Balances
+        // 2. Balances (The Core Fix)
         const balArea = document.getElementById('bal-area');
-        balArea.innerHTML = accNames.length === 0 ? "Add a bank account to start." : "";
-        accNames.forEach(name => {
-            const net = db.txs.filter(t => t.acc === name).reduce((s, t) => s + (t.type === 'inc' ? t.amt : -t.amt), 0);
-            balArea.innerHTML += `<div class="bal-card">${name}<br><strong>£${(db.accounts[name] + net).toFixed(2)}</strong></div>`;
-        });
+        if (db.accounts.length === 0) {
+            balArea.innerHTML = "<p style='color:#666'>No accounts created yet.</p>";
+        } else {
+            balArea.innerHTML = db.accounts.map(acc => {
+                const transactions = db.txs.filter(t => t.acc === acc.name);
+                const netChange = transactions.reduce((sum, t) => sum + (t.type === 'inc' ? t.amt : -t.amt), 0);
+                const total = acc.initial + netChange;
+                return `<div class="bal-card">${acc.name}<br><strong>£${total.toFixed(2)}</strong></div>`;
+            }).join('');
+        }
 
-        // History
-        document.getElementById('hist-table').querySelector('tbody').innerHTML = db.txs.slice().reverse().slice(0,5).map(t => `
-            <tr><td>${t.date}</td><td>${t.desc}</td><td style="color:${t.type==='inc'?'green':'red'}">£${t.amt.toFixed(2)}</td></tr>
+        // 3. History
+        const histBody = document.querySelector('#hist-table tbody');
+        histBody.innerHTML = db.txs.slice().reverse().slice(0,10).map(t => `
+            <tr>
+                <td>${t.date}</td>
+                <td>${t.desc}</td>
+                <td style="color:${t.type==='inc'?'green':'red'}">£${t.amt.toFixed(2)}</td>
+                <td>${t.acc}</td>
+            </tr>
         `).join('');
 
-        // Category Table
-        document.getElementById('cat-table').querySelector('tbody').innerHTML = db.categories.map((c, i) => `
-            <tr><td>${c.name}</td><td>${c.type}</td><td><button onclick="db.categories.splice(${i},1);save()" style="background:none; color:red; width:auto;">Delete</button></td></tr>
-        `).
+        // 4. Categories Table
+        const catBody = document.querySelector('#cat-table tbody');
+        catBody.innerHTML = db.categories.map((c, i) => `
+            <tr>
+                <td>${c.name}</td>
+                <td>${c.type === 'inc' ? 'Income' : 'Expense'}</td>
+                <td><button onclick="db.categories.splice(${i},1);save()" style="background:none; color:red; width:auto; padding:0;">Delete</button></td>
+            </tr>
+        `).join('');
+    }
+
+    window.onload = () => {
+        document.getElementById('tx-date').valueAsDate = new Date();
+        render();
+    };
+</script>
+</body>
+</html>

@@ -3,256 +3,138 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finance Pro: Category Table & Fixed Balances</title>
+    <title>Finance Pro: Fixed Navigation</title>
     <style>
         :root { --primary: #2c3e50; --success: #27ae60; --danger: #e74c3c; --accent: #3498db; --warning: #f39c12; }
-        body { font-family: sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
         
-        /* Navigation */
-        nav { background: var(--primary); color: white; padding: 15px 20px; display: flex; gap: 20px; align-items: center; position: sticky; top: 0; z-index: 100; }
-        nav h2 { margin: 0; margin-right: 20px; font-size: 1.2em; }
-        nav a { color: white; text-decoration: none; cursor: pointer; padding: 5px 10px; border-radius: 4px; }
-        nav a:hover { background: rgba(255,255,255,0.2); }
-        nav a.active { background: var(--accent); }
+        /* Navigation Bar */
+        nav { background: var(--primary); color: white; padding: 10px 20px; display: flex; gap: 25px; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .nav-link { color: #bdc3c7; text-decoration: none; cursor: pointer; font-weight: 600; padding: 10px; transition: 0.3s; }
+        .nav-link:hover { color: white; }
+        .nav-link.active { color: white; border-bottom: 3px solid var(--accent); }
 
-        .container { padding: 20px; max-width: 1400px; margin: 0 auto; }
-        .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
-        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .container { padding: 25px; max-width: 1200px; margin: 0 auto; }
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 25px; }
         
-        input, select, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; }
-        button { cursor: pointer; font-weight: bold; border: none; }
-        .btn-main { background: var(--primary); color: white; }
-        .btn-go { background: var(--success); color: white; }
-        .btn-danger { background: var(--danger); color: white; }
-        
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #eee; }
-        
-        .bal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
-        .bal-card { background: var(--accent); color: white; padding: 20px; border-radius: 8px; text-align: center; }
-        .bal-card strong { font-size: 1.4em; display: block; }
-        
-        .page { display: none; }
+        /* Layout */
+        .page { display: none; animation: fadeIn 0.3s; }
         .page.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+        input, select, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 6px; border: 1px solid #dfe6e9; box-sizing: border-box; font-size: 1rem; }
+        button { cursor: pointer; border: none; transition: background 0.2s; }
+        .btn-go { background: var(--success); color: white; }
+        .btn-go:hover { background: #219150; }
+        
+        /* Tables */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; }
+        th, td { text-align: left; padding: 15px; border-bottom: 1px solid #f1f2f6; }
+        th { background: #f8f9fa; color: #636e72; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; }
+
+        .bal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; }
+        .bal-card { background: linear-gradient(135deg, var(--accent), #2980b9); color: white; padding: 20px; border-radius: 10px; text-align: center; }
+        .bal-card strong { font-size: 1.6em; display: block; margin-top: 5px; }
     </style>
 </head>
 <body>
 
 <nav>
-    <h2>FinanceVault</h2>
-    <a onclick="showPage('dashboard')" id="nav-dashboard" class="active">Dashboard</a>
-    <a onclick="showPage('categories')" id="nav-categories">Manage Categories</a>
+    <h1 style="font-size: 1.3em; margin: 0; color: var(--accent);">FinanceVault</h1>
+    <div onclick="showPage('dashboard')" id="btn-dashboard" class="nav-link active">Dashboard</div>
+    <div onclick="showPage('categories')" id="btn-categories" class="nav-link">Manage Categories</div>
 </nav>
 
 <div class="container">
-    <div id="dashboard" class="page active">
-        <div class="grid">
-            <div class="main">
-                <div class="card">
-                    <h2>Account Balances</h2>
-                    <div id="bal-area" class="bal-grid"></div>
-                </div>
+    
+    <div id="page-dashboard" class="page active">
+        <div class="card">
+            <h2>Current Balances</h2>
+            <div id="bal-area" class="bal-grid"></div>
+        </div>
 
+        <div class="grid">
+            <div class="left-col">
                 <div class="card">
-                    <h3>Add One-Off Transaction</h3>
-                    <form onsubmit="addOneOff(event)" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
-                        <input type="text" id="oo-desc" placeholder="Item/Store Name" required style="grid-column: span 2;">
-                        <input type="number" id="oo-amt" placeholder="Amount £" step="0.01" required>
-                        <input type="date" id="oo-date" required>
-                        <select id="oo-acc"></select>
-                        <select id="oo-cat"></select>
-                        <button class="btn-go" style="grid-column: span 3; margin: 0;">Post Transaction</button>
+                    <h3>New Transaction</h3>
+                    <form onsubmit="addEntry(event)" style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px;">
+                        <input type="text" id="t-desc" placeholder="What was it for?" required style="grid-column: span 2;">
+                        <input type="number" id="t-amt" placeholder="£0.00" step="0.01" required>
+                        <input type="date" id="t-date" required>
+                        <select id="t-acc"></select>
+                        <select id="t-cat"></select>
+                        <button class="btn-go" style="grid-column: span 3; margin-top: 10px;">Record Transaction</button>
                     </form>
                 </div>
-
+                
                 <div class="card">
-                    <h3>Recent History</h3>
-                    <div style="overflow-x:auto;">
-                        <table>
-                            <thead><tr><th>Date</th><th>Desc</th><th>Cat</th><th>Amt</th><th>Acc</th><th></th></tr></thead>
+                    <h3>Recent Activity</h3>
+                    <div style="overflow-x: auto;">
+                        <table id="history-table">
+                            <thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Amount</th><th>Account</th><th></th></tr></thead>
                             <tbody id="history-body"></tbody>
                         </table>
                     </div>
                 </div>
             </div>
 
-            <div class="side">
-                <div class="card" style="border-left: 5px solid var(--warning);">
-                    <h3>Recurring Payments</h3>
-                    <form onsubmit="addTemplate(event)">
-                        <input type="text" id="rt-desc" placeholder="Netflix/Rent" required>
-                        <input type="number" id="rt-amt" placeholder="Amount £" step="0.01" required>
-                        <input type="date" id="rt-date" required>
-                        <select id="rt-acc"></select>
-                        <select id="rt-cat"></select>
-                        <button class="btn-main">Save Template</button>
-                    </form>
-                    <div id="due-section"></div>
-                    <div id="template-list" style="margin-top:10px; font-size:0.8em;"></div>
-                </div>
-
+            <div class="right-col">
                 <div class="card">
-                    <h3>Manage Bank Accounts</h3>
-                    <form onsubmit="addNewAcc(event)">
-                        <input type="text" id="a-name" placeholder="Bank Name" required>
-                        <input type="number" id="a-bal" placeholder="Current Balance £" step="0.01" required>
-                        <button class="btn-main">Add Account</button>
+                    <h3>Setup Bank Account</h3>
+                    <form onsubmit="addAcc(event)">
+                        <input type="text" id="a-name" placeholder="Bank Name (e.g. Monzo)" required>
+                        <input type="number" id="a-bal" placeholder="Opening Balance £" step="0.01" required>
+                        <button style="background: var(--primary); color: white;">Add Bank</button>
                     </form>
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="categories" class="page">
+    <div id="page-categories" class="page">
         <div class="card">
-            <h2>Category Table Editor</h2>
-            <p>Define whether a category is for <strong>Income</strong> (adds to balance) or <strong>Expense</strong> (subtracts).</p>
+            <h2>Category Manager</h2>
+            <p style="color: #636e72;">Define your spending and income groups below.</p>
+            
             <table>
                 <thead>
                     <tr>
-                        <th>Category Name</th>
-                        <th>Type</th>
-                        <th>Action</th>
+                        <th>Category Label</th>
+                        <th>Financial Impact</th>
+                        <th style="text-align: right;">Action</th>
                     </tr>
                 </thead>
-                <tbody id="category-table-body"></tbody>
+                <tbody id="cat-table-body"></tbody>
             </table>
-            
-            <h3 style="margin-top:30px;">Add New Category</h3>
-            <form onsubmit="addCategory(event)" style="display: flex; gap: 10px;">
-                <input type="text" id="cat-name" placeholder="e.g. Shopping" required>
-                <select id="cat-type" style="width: 200px;">
-                    <option value="exp">Expense (-)</option>
-                    <option value="inc">Income (+)</option>
+
+            <h3 style="margin-top: 40px;">Add New Category</h3>
+            <form onsubmit="addNewCategory(event)" style="display: flex; gap: 10px;">
+                <input type="text" id="nc-name" placeholder="e.g. Health, Coffee, Bonus" required>
+                <select id="nc-type" style="width: 250px;">
+                    <option value="exp">Expense (Subtracts from Balance)</option>
+                    <option value="inc">Income (Adds to Balance)</option>
                 </select>
-                <button class="btn-go" style="width: 150px;">Add Row</button>
+                <button class="btn-go" style="width: 180px;">Add to List</button>
             </form>
         </div>
     </div>
+
 </div>
 
 <script>
-    const DB_KEY = 'Finance_v2026_FINAL';
+    const DB_NAME = 'Finance_v2026_FINAL';
 
-    // 1. DATA INITIALIZATION
-    let state = JSON.parse(localStorage.getItem(DB_KEY)) || {
-        pin: "1234",
+    // 1. DATA CORE
+    let state = JSON.parse(localStorage.getItem(DB_NAME)) || {
         accounts: {},
         txs: [],
-        templates: [],
         categories: [
             { name: "Salary", type: "inc" },
             { name: "Rent", type: "exp" },
-            { name: "Groceries", type: "exp" },
-            { name: "Bills", type: "exp" }
+            { name: "Groceries", type: "exp" }
         ]
     };
 
-    function save() {
-        localStorage.setItem(DB_KEY, JSON.stringify(state));
-        refreshUI();
-    }
-
-    // 2. NAVIGATION
-    function showPage(pageId) {
-        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
-        document.getElementById(pageId).classList.add('active');
-        document.getElementById('nav-' + pageId).classList.add('active');
-    }
-
-    // 3. CATEGORY LOGIC
-    function addCategory(e) {
-        e.preventDefault();
-        state.categories.push({
-            name: document.getElementById('cat-name').value,
-            type: document.getElementById('cat-type').value
-        });
-        save();
-        e.target.reset();
-    }
-
-    function removeCategory(index) {
-        state.categories.splice(index, 1);
-        save();
-    }
-
-    // 4. TRANSACTION LOGIC
-    function addOneOff(e) {
-        e.preventDefault();
-        const catName = document.getElementById('oo-cat').value;
-        const catObj = state.categories.find(c => c.name === catName);
-        
-        state.txs.push({
-            id: Date.now(),
-            date: document.getElementById('oo-date').value,
-            desc: document.getElementById('oo-desc').value,
-            amt: parseFloat(document.getElementById('oo-amt').value),
-            acc: document.getElementById('oo-acc').value,
-            cat: catName,
-            type: catObj ? catObj.type : 'exp'
-        });
-        save();
-        e.target.reset();
-        document.getElementById('oo-date').valueAsDate = new Date();
-    }
-
-    function addNewAcc(e) {
-        e.preventDefault();
-        state.accounts[document.getElementById('a-name').value] = parseFloat(document.getElementById('a-bal').value);
-        save();
-        e.target.reset();
-    }
-
-    function postRecurring(id) {
-        const t = state.templates.find(x => x.id === id);
-        state.txs.push({ id: Date.now(), date: t.nextDate, desc: t.desc, amt: t.amt, acc: t.acc, cat: t.cat, type: t.type });
-        let d = new Date(t.nextDate);
-        d.setMonth(d.getMonth() + 1);
-        t.nextDate = d.toISOString().split('T')[0];
-        save();
-    }
-
-    // 5. THE CRITICAL REFRESH UI (FORCED STABILITY)
-    function refreshUI() {
-        const accNames = Object.keys(state.accounts);
-        
-        // Update Selects
-        const catOptions = state.categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
-        const accOptions = accNames.map(n => `<option value="${n}">${n}</option>`).join('');
-        
-        document.getElementById('oo-acc').innerHTML = accOptions;
-        document.getElementById('rt-acc').innerHTML = accOptions;
-        document.getElementById('oo-cat').innerHTML = catOptions;
-        document.getElementById('rt-cat').innerHTML = catOptions;
-
-        // Render Category Table
-        document.getElementById('category-table-body').innerHTML = state.categories.map((c, i) => `
-            <tr>
-                <td><strong>${c.name}</strong></td>
-                <td>${c.type === 'inc' ? '<span style="color:green">Income (+)</span>' : '<span style="color:red">Expense (-)</span>'}</td>
-                <td><button onclick="removeCategory(${i})" style="color:red; background:none; width:auto;">Delete</button></td>
-            </tr>
-        `).join('');
-
-        // Render Balances (Error-Safe)
-        const balArea = document.getElementById('bal-area');
-        balArea.innerHTML = '';
-        accNames.forEach(name => {
-            const history = state.txs.filter(t => t.acc === name);
-            const net = history.reduce((sum, t) => sum + (t.type === 'inc' ? t.amt : -t.amt), 0);
-            const startBal = state.accounts[name] || 0;
-            balArea.innerHTML += `<div class="bal-card">${name}<strong>£${(startBal + net).toFixed(2)}</strong></div>`;
-        });
-
-        // Render History
-        document.getElementById('history-body').innerHTML = state.txs.slice().reverse().slice(0,10).map(t => `
-            <tr>
-                <td>${t.date}</td><td>${t.desc}</td><td>${t.cat}</td>
-                <td style="color:${t.type==='inc'?'green':'red'}">£${t.amt.toFixed(2)}</td><td>${t.acc}</td>
-                <td><button onclick="state.txs=state.txs.filter(x=>x.id!==${t.id}); save();" style="color:red; background:none; width:auto;">&times;</button></td>
-            </tr>
-        `).join('');
-    }
-
-    window
+    // 2. PAGE NAVIGATION ENGINE
+    function showPage(pageName

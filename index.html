@@ -3,36 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finance Monitor Pro</title>
+    <title>Finance Monitor Pro + Accounts</title>
     <style>
         :root { --primary: #2c3e50; --success: #27ae60; --danger: #e74c3c; --accent: #3498db; }
-        body { font-family: 'Segoe UI', sans-serif; max-width: 1100px; margin: 0 auto; background: #f0f2f5; padding: 20px; display: flex; flex-wrap: wrap; gap: 20px; }
-        
-        /* Auth Screen */
+        body { font-family: 'Segoe UI', sans-serif; max-width: 1200px; margin: 0 auto; background: #f0f2f5; padding: 20px; display: flex; flex-wrap: wrap; gap: 20px; }
         #lock-screen { position: fixed; inset: 0; background: var(--primary); display: flex; justify-content: center; align-items: center; z-index: 1000; }
         .lock-box { background: white; padding: 30px; border-radius: 12px; text-align: center; width: 300px; }
-        
-        /* Layout */
-        .card-panel { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .card-panel { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
         .main-content { flex: 2; min-width: 350px; }
-        .side-content { flex: 1; min-width: 300px; display: flex; flex-direction: column; gap: 20px; }
-        
-        /* UI Components */
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .side-content { flex: 1; min-width: 300px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 20px; }
         .stat-card { padding: 15px; border-radius: 8px; color: white; text-align: center; }
-        form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding-bottom: 20px; border-bottom: 1px solid #eee; }
+        form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
         .full-width { grid-column: span 2; }
-        
-        table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #f0f0f0; }
-        
-        button { cursor: pointer; border: none; border-radius: 6px; padding: 10px; font-weight: bold; transition: 0.2s; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #f0f0f0; }
+        button { cursor: pointer; border: none; border-radius: 6px; padding: 8px; font-weight: bold; }
         .btn-add { background: var(--primary); color: white; }
-        .btn-export { background: var(--success); color: white; width: 100%; }
-        .btn-lock { background: var(--danger); color: white; width: 100%; }
-        
-        .report-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
-        .warning { color: var(--danger); font-weight: bold; }
+        .mgr-section { margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; }
+        .pill { display: inline-block; background: #eee; padding: 2px 8px; border-radius: 10px; margin: 2px; font-size: 0.8em; }
     </style>
 </head>
 <body>
@@ -45,148 +34,148 @@
     </div>
 </div>
 
-<div class="main-content card-panel">
-    <h2>Financial Monitor</h2>
-    <div class="stats-grid">
-        <div class="stat-card" style="background:var(--success)">Income<br><span id="total-inc">$0</span></div>
-        <div class="stat-card" style="background:var(--danger)">Expenses<br><span id="total-exp">$0</span></div>
-        <div id="bal-card" class="stat-card" style="background:var(--accent)">Balance<br><span id="total-bal">$0</span></div>
+<div class="main-content">
+    <div class="card-panel">
+        <h2>Accounts & Balances</h2>
+        <div id="accounts-display" class="stats-grid"></div>
     </div>
 
-    <form id="entry-form">
-        <input type="text" id="desc" placeholder="Label" required>
-        <input type="number" id="amt" placeholder="Amount" step="0.01" required>
-        <input type="date" id="date" required>
-        <select id="cat">
-            <option value="Income">Income (+)</option>
-            <option value="Food">Food</option>
-            <option value="Housing">Housing</option>
-            <option value="Transport">Transport</option>
-            <option value="Leisure">Leisure</option>
-        </select>
-        <button type="submit" class="btn-add full-width">Save Transaction</button>
-    </form>
-
-    <div style="max-height: 400px; overflow-y: auto;">
-        <table>
-            <thead><tr><th>Date</th><th>Desc</th><th>Cat</th><th>Amt</th><th></th></tr></thead>
-            <tbody id="tx-list"></tbody>
-        </table>
+    <div class="card-panel">
+        <h3>New Transaction</h3>
+        <form id="tx-form">
+            <input type="text" id="desc" placeholder="Label" required>
+            <input type="number" id="amt" placeholder="Amount" step="0.01" required>
+            <input type="date" id="date" required>
+            <select id="acc-select"></select>
+            <select id="cat-select" class="full-width"></select>
+            <button type="submit" class="btn-add full-width">Save Transaction</button>
+        </form>
+        <div style="max-height: 300px; overflow-y: auto;">
+            <table>
+                <thead><tr><th>Date</th><th>Acc</th><th>Desc</th><th>Cat</th><th>Amt</th><th></th></tr></thead>
+                <tbody id="tx-list"></tbody>
+            </table>
+        </div>
     </div>
 </div>
 
 <div class="side-content">
-    <div class="card-panel" style="background: var(--primary); color: white;">
-        <h3>Monthly Report</h3>
-        <p id="curr-month" style="opacity: 0.7"></p>
-        <div id="cat-breakdown"></div>
+    <div class="card-panel">
+        <h3>Settings & Categories</h3>
+        <div class="mgr-section">
+            <strong>Add Account:</strong>
+            <form onsubmit="addAccount(event)" style="display:flex; margin-top:5px;">
+                <input type="text" id="new-acc-name" placeholder="e.g. Savings" required>
+                <button class="btn-add">Add</button>
+            </form>
+            <div id="acc-list-pills"></div>
+        </div>
+        <div class="mgr-section">
+            <strong>Add Category:</strong>
+            <form onsubmit="addCategory(event)" style="display:flex; margin-top:5px;">
+                <input type="text" id="new-cat-name" placeholder="e.g. Netflix" required>
+                <select id="new-cat-type"><option value="exp">Expense</option><option value="inc">Income</option></select>
+                <button class="btn-add">Add</button>
+            </form>
+            <div id="cat-list-pills"></div>
+        </div>
     </div>
 
     <div class="card-panel">
-        <h3>Tools & Backup</h3>
-        <button class="btn-export" onclick="exportCSV()">Export to Excel (CSV)</button>
-        <div style="margin-top:10px; display: flex; gap: 5px;">
-            <button onclick="backupJSON()" style="flex:1; background:#95a5a6; color:white;">Backup File</button>
-            <button onclick="document.getElementById('file-input').click()" style="flex:1; background:#95a5a6; color:white;">Restore File</button>
-        </div>
-        <input type="file" id="file-input" style="display:none" onchange="restoreJSON(event)">
-        <button class="btn-lock" style="margin-top:10px;" onclick="lock()">Lock Now</button>
+        <button onclick="exportCSV()" style="width:100%; background:var(--success); color:white; margin-bottom:5px;">Export CSV</button>
+        <button onclick="lock()" style="width:100%; background:var(--danger); color:white;">Lock Dashboard</button>
     </div>
 </div>
 
 <script>
-    const PIN = "588609"; // Edit your PIN here
-    const BUDGETS = { "Food": 400, "Transport": 150, "Leisure": 200, "Housing": 1200 };
-
-    function unlock() {
-        if(document.getElementById('pin-entry').value === PIN) {
-            sessionStorage.setItem('auth', 'ok');
-            document.getElementById('lock-screen').style.display = 'none';
-        }
-    }
+    const PIN = "588609";
+    // --- AUTH ---
+    function unlock() { if(document.getElementById('pin-entry').value === PIN) { sessionStorage.setItem('auth', 'ok'); document.getElementById('lock-screen').style.display = 'none'; } }
     function lock() { sessionStorage.removeItem('auth'); location.reload(); }
     if(sessionStorage.getItem('auth') === 'ok') document.getElementById('lock-screen').style.display = 'none';
 
-    let txs = JSON.parse(localStorage.getItem('fin_data')) || [];
-    document.getElementById('date').valueAsDate = new Date();
-
-    document.getElementById('entry-form').onsubmit = (e) => {
-        e.preventDefault();
-        txs.push({
-            id: Date.now(),
-            date: document.getElementById('date').value,
-            desc: document.getElementById('desc').value,
-            amt: parseFloat(document.getElementById('amt').value),
-            cat: document.getElementById('cat').value
-        });
-        sync();
-        e.target.reset();
-        document.getElementById('date').valueAsDate = new Date();
+    // --- DATA ---
+    let data = JSON.parse(localStorage.getItem('fin_v2')) || {
+        accounts: ["Cash", "Bank"],
+        categories: { inc: ["Salary", "Gift"], exp: ["Food", "Rent", "Transport"] },
+        txs: []
     };
 
-    function sync() {
-        localStorage.setItem('fin_data', JSON.stringify(txs));
-        render();
+    function sync() { localStorage.setItem('fin_v2', JSON.stringify(data)); render(); }
+
+    function addAccount(e) {
+        e.preventDefault();
+        const name = document.getElementById('new-acc-name').value;
+        if(!data.accounts.includes(name)) data.accounts.push(name);
+        e.target.reset(); sync();
     }
 
-    function deleteTx(id) { txs = txs.filter(t => t.id !== id); sync(); }
+    function addCategory(e) {
+        e.preventDefault();
+        const name = document.getElementById('new-cat-name').value;
+        const type = document.getElementById('new-cat-type').value;
+        if(!data.categories[type].includes(name)) data.categories[type].push(name);
+        e.target.reset(); sync();
+    }
+
+    document.getElementById('tx-form').onsubmit = (e) => {
+        e.preventDefault();
+        const cat = document.getElementById('cat-select').value;
+        const type = data.categories.inc.includes(cat) ? 'inc' : 'exp';
+        data.txs.push({
+            id: Date.now(),
+            date: document.getElementById('date').value,
+            acc: document.getElementById('acc-select').value,
+            desc: document.getElementById('desc').value,
+            amt: parseFloat(document.getElementById('amt').value),
+            cat: cat,
+            type: type
+        });
+        sync(); e.target.reset(); document.getElementById('date').valueAsDate = new Date();
+    };
+
+    function deleteTx(id) { data.txs = data.txs.filter(t => t.id !== id); sync(); }
+
+    function render() {
+        // Update Selects
+        const accSel = document.getElementById('acc-select');
+        const catSel = document.getElementById('cat-select');
+        accSel.innerHTML = data.accounts.map(a => `<option value="${a}">${a}</option>`).join('');
+        catSel.innerHTML = `<optgroup label="Income">${data.categories.inc.map(c => `<option value="${c}">${c}</option>`).join('')}</optgroup>
+                            <optgroup label="Expenses">${data.categories.exp.map(c => `<option value="${c}">${c}</option>`).join('')}</optgroup>`;
+
+        // Update Account Balances
+        const accDisplay = document.getElementById('accounts-display');
+        accDisplay.innerHTML = '';
+        data.accounts.forEach(acc => {
+            const bal = data.txs.filter(t => t.acc === acc).reduce((sum, t) => sum + (t.type === 'inc' ? t.amt : -t.amt), 0);
+            accDisplay.innerHTML += `<div class="stat-card" style="background:var(--accent)">${acc}<br><strong>$${bal.toFixed(2)}</strong></div>`;
+        });
+
+        // Update Pills
+        document.getElementById('acc-list-pills').innerHTML = data.accounts.map(a => `<span class="pill">${a}</span>`).join('');
+        document.getElementById('cat-list-pills').innerHTML = [...data.categories.inc, ...data.categories.exp].map(c => `<span class="pill">${c}</span>`).join('');
+
+        // Update Table
+        const list = document.getElementById('tx-list');
+        list.innerHTML = '';
+        data.txs.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(t => {
+            const row = list.insertRow();
+            row.innerHTML = `<td>${t.date}</td><td>${t.acc}</td><td>${t.desc}</td><td>${t.cat}</td>
+                             <td style="color:${t.type === 'inc' ? 'green' : 'red'}">$${t.amt.toFixed(2)}</td>
+                             <td><button onclick="deleteTx(${t.id})" style="color:var(--danger); background:none;">&times;</button></td>`;
+        });
+    }
 
     function exportCSV() {
-        let content = "Date,Description,Category,Amount\n" + txs.map(t => `${t.date},${t.desc},${t.cat},${t.amt}`).join("\n");
+        let csv = "Date,Account,Description,Category,Amount,Type\n" + data.txs.map(t => `${t.date},${t.acc},${t.desc},${t.cat},${t.amt},${t.type}`).join("\n");
         let link = document.createElement('a');
-        link.href = 'data:text/csv;charset=utf-8,' + encodeURI(content);
-        link.download = 'finance_export.csv';
+        link.href = 'data:text/csv;charset=utf-8,' + encodeURI(csv);
+        link.download = 'finance_full_report.csv';
         link.click();
     }
 
-    function backupJSON() {
-        let blob = new Blob([JSON.stringify(txs)], {type: 'application/json'});
-        let a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = 'finance_backup.json';
-        a.click();
-    }
-
-    function restoreJSON(e) {
-        let reader = new FileReader();
-        reader.onload = (event) => {
-            txs = JSON.parse(event.target.result);
-            sync();
-        };
-        reader.readAsText(e.target.files[0]);
-    }
-
-    function render() {
-        const list = document.getElementById('tx-list');
-        list.innerHTML = '';
-        let sums = { inc: 0, exp: 0 }, catTotals = {};
-        const mo = new Date().toISOString().slice(0, 7);
-        document.getElementById('curr-month').innerText = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
-
-        txs.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(t => {
-            const row = list.insertRow();
-            row.innerHTML = `<td>${t.date}</td><td>${t.desc}</td><td>${t.cat}</td><td>$${t.amt.toFixed(2)}</td>
-                             <td><button onclick="deleteTx(${t.id})" style="color:var(--danger); background:none;">&times;</button></td>`;
-            
-            if(t.cat === 'Income') sums.inc += t.amt;
-            else {
-                sums.exp += t.amt;
-                if(t.date.startsWith(mo)) catTotals[t.cat] = (catTotals[t.cat] || 0) + t.amt;
-            }
-        });
-
-        document.getElementById('total-inc').innerText = `$${sums.inc.toFixed(2)}`;
-        document.getElementById('total-exp').innerText = `$${sums.exp.toFixed(2)}`;
-        document.getElementById('total-bal').innerText = `$${(sums.inc - sums.exp).toFixed(2)}`;
-
-        const report = document.getElementById('cat-breakdown');
-        report.innerHTML = '';
-        for (let [c, v] of Object.entries(catTotals)) {
-            let lim = BUDGETS[c] || 0;
-            report.innerHTML += `<div class="report-item ${lim && v > lim ? 'warning' : ''}">
-                <span>${c}</span><span>$${v.toFixed(0)} / $${lim}</span></div>`;
-        }
-    }
+    document.getElementById('date').valueAsDate = new Date();
     render();
 </script>
 </body>

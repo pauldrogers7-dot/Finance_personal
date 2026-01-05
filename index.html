@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finance Pro: Recovery Mode (£)</title>
+    <title>Finance Pro: Permanent Storage (£)</title>
     <style>
         :root { --primary: #2c3e50; --success: #27ae60; --danger: #e74c3c; --accent: #3498db; --warning: #f39c12; }
         body { font-family: 'Segoe UI', sans-serif; max-width: 1400px; margin: 0 auto; background: #f0f2f5; padding: 20px; display: flex; flex-wrap: wrap; gap: 20px; }
@@ -23,7 +23,6 @@
         .btn-add { background: var(--primary); color: white; }
         .btn-post { background: var(--success); color: white; }
         .btn-danger { background: var(--danger); color: white; }
-        .recovery-hint { font-size: 0.75em; color: #777; margin-top: 15px; line-height: 1.4; }
     </style>
 </head>
 <body>
@@ -31,13 +30,9 @@
 <div id="lock-screen">
     <div class="modal-box">
         <h2 style="margin-top:0">Finance Vault</h2>
-        <p>Enter PIN to Unlock</p>
-        <input type="password" id="pin-entry" placeholder="PIN" style="width:100%; margin: 10px 0; font-size: 1.2em; text-align: center;" autofocus>
-        <button onclick="unlock()" class="btn-add" style="width:100%; padding: 12px;">Unlock Dashboard</button>
-        <div class="recovery-hint">
-            Forgot PIN? Enter your <strong>Recovery Key</strong> above.<br>
-            <span style="color:var(--accent); cursor:pointer" onclick="alert('Your key is stored in your settings panel after login.')">Where is my key?</span>
-        </div>
+        <input type="password" id="pin-entry" placeholder="Enter PIN" style="width:100%; margin: 10px 0; font-size: 1.2em; text-align: center;" autofocus>
+        <button onclick="unlock()" class="btn-add" style="width:100%; padding: 12px;">Unlock</button>
+        <p style="font-size: 0.7em; color: #777; margin-top: 10px;">Default: 1234</p>
     </div>
 </div>
 
@@ -61,15 +56,12 @@
 <div class="side-content">
     <div class="card-panel" style="border-top: 5px solid var(--danger);">
         <h3>Security Settings</h3>
-        <p style="font-size: 0.8em; color: #666;">Change PIN</p>
         <form onsubmit="changePin(event)">
             <input type="password" id="new-pin" placeholder="New PIN" required>
             <input type="password" id="confirm-pin" placeholder="Confirm PIN" required>
             <button class="btn-danger full-width">Update PIN</button>
         </form>
-        <hr style="border:0; border-top: 1px solid #eee; margin: 15px 0;">
-        <p style="font-size: 0.8em; color: #666;">Recovery Key (Keep Secret!)</p>
-        <input type="text" id="display-key" readonly style="width:100%; background:#f8f9fa; border:1px dashed #ccc; text-align:center; font-family:monospace;">
+        <p style="font-size: 0.75em; margin-top:10px;">Recovery Key: <span id="recovery-key-text" style="font-weight:bold; color:var(--accent);"></span></p>
     </div>
 
     <div class="card-panel" style="background: #f8f9fa; border-left: 5px solid var(--success);">
@@ -88,7 +80,7 @@
         <h3>Manage Accounts</h3>
         <form onsubmit="upsertAccount(event)">
             <input type="text" id="new-acc-name" placeholder="Bank Name" required>
-            <input type="number" id="new-acc-open" placeholder="Opening Bal £" step="0.01" required>
+            <input type="number" id="new-acc-open" placeholder="Starting Bal £" step="0.01" required>
             <button class="btn-add full-width">Set Balance</button>
         </form>
     </div>
@@ -100,42 +92,36 @@
 </div>
 
 <script>
+    // THE STORAGE KEY - Changed to a permanent name
+    const STORAGE_KEY = 'FinanceData_Final';
+
     // 1. DATA INITIALIZATION
-    // This generates a random recovery key if one doesn't exist
-    const defaultKey = "RECOVER-" + Math.random().toString(36).substr(2, 9).toUpperCase();
-    
-    let data = JSON.parse(localStorage.getItem('fin_v14')) || {
-        config: { 
-            pin: "1234",
-            recoveryKey: defaultKey
-        },
+    let data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
+        config: { pin: "1234", recoveryKey: "RECOVER-" + Math.random().toString(36).substr(2, 9).toUpperCase() },
         accounts: { "Main Bank": 0 },
         categories: { inc: ["Salary"], exp: ["Rent", "Food", "Bills"] },
         txs: [],
         templates: [] 
     };
 
-    // 2. EMERGENCY UNLOCK LOGIC
+    function sync() { 
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); 
+        console.log("Data saved to browser storage.");
+        render(); 
+    }
+
     function unlock() { 
-        const entry = document.getElementById('pin-entry').value.trim();
-        
-        // Check PIN OR Recovery Key
+        const entry = document.getElementById('pin-entry').value;
         if(entry === data.config.pin || entry === data.config.recoveryKey) { 
-            if(entry === data.config.recoveryKey) {
-                alert("Recovery Key accepted! Please reset your PIN in settings.");
-            }
             sessionStorage.setItem('auth', 'ok'); 
             document.getElementById('lock-screen').style.display = 'none'; 
             render(); 
         } else {
-            alert("Incorrect. Enter your PIN or your secret Recovery Key.");
+            alert("Incorrect. Try 1234 or your Recovery Key.");
         }
     }
 
-    function lock() { 
-        sessionStorage.removeItem('auth'); 
-        location.reload(); 
-    }
+    function lock() { sessionStorage.removeItem('auth'); location.reload(); }
 
     function changePin(e) {
         e.preventDefault();
@@ -144,33 +130,24 @@
         if(p1 === p2) {
             data.config.pin = p1;
             sync();
-            alert("PIN updated successfully!");
+            alert("PIN updated!");
             e.target.reset();
-        } else {
-            alert("PINs do not match.");
         }
-    }
-
-    // 3. CORE LOGIC
-    function sync() { 
-        localStorage.setItem('fin_v14', JSON.stringify(data)); 
-        render(); 
     }
 
     function addOneOff(e) {
         e.preventDefault();
-        const cat = document.getElementById('one-cat').value;
         data.txs.push({
             id: Date.now(),
             date: document.getElementById('one-date').value,
             acc: document.getElementById('one-acc').value,
             desc: document.getElementById('one-desc').value,
             amt: parseFloat(document.getElementById('one-amt').value),
-            cat: cat,
-            type: data.categories.inc.includes(cat) ? 'inc' : 'exp'
+            cat: document.getElementById('one-cat').value,
+            type: data.categories.inc.includes(document.getElementById('one-cat').value) ? 'inc' : 'exp'
         });
         e.target.reset(); 
-        document.getElementById('one-date').valueAsDate = new Date(); 
+        document.getElementById('one-date').valueAsDate = new Date();
         sync();
     }
 
@@ -186,14 +163,10 @@
         const accs = Object.keys(data.accounts);
         const cats = [...data.categories.inc, ...data.categories.exp];
 
-        // Security Display
-        document.getElementById('display-key').value = data.config.recoveryKey;
-
-        // Populate selects
+        document.getElementById('recovery-key-text').innerText = data.config.recoveryKey;
         document.getElementById('one-acc').innerHTML = accs.map(a => `<option value="${a}">${a}</option>`).join('');
         document.getElementById('one-cat').innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
 
-        // Balances
         const accDisplay = document.getElementById('accounts-display');
         accDisplay.innerHTML = '';
         accs.forEach(name => {
@@ -201,10 +174,9 @@
             accDisplay.innerHTML += `<div class="stat-card" style="background:var(--accent)">${name}<br><strong>£${(data.accounts[name] + txTotal).toFixed(2)}</strong></div>`;
         });
 
-        // History
         const list = document.getElementById('tx-list');
         list.innerHTML = '';
-        data.txs.sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 10).forEach(t => {
+        data.txs.sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 15).forEach(t => {
             const row = list.insertRow();
             row.innerHTML = `<td>${t.date}</td><td>${t.acc}</td><td>${t.desc}</td>
                              <td style="color:${t.type==='inc'?'green':'red'}">£${t.amt.toFixed(2)}</td>

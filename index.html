@@ -3,31 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finance Pro: Stable v2</title>
+    <title>Finance Pro: Fixed Dropdowns</title>
     <style>
         :root { --primary: #2c3e50; --success: #27ae60; --danger: #e74c3c; --accent: #3498db; --warning: #f39c12; }
-        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f2f5; margin: 0; padding: 0; color: #333; }
-        
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
         nav { background: var(--primary); color: white; padding: 0 20px; display: flex; align-items: center; height: 60px; gap: 30px; position: sticky; top: 0; z-index: 1000; }
-        .nav-btn { cursor: pointer; padding: 15px 10px; font-weight: bold; border-bottom: 3px solid transparent; opacity: 0.7; transition: 0.2s; }
+        .nav-btn { cursor: pointer; padding: 15px 10px; font-weight: bold; border-bottom: 3px solid transparent; opacity: 0.7; }
         .nav-btn.active { border-bottom: 3px solid var(--accent); opacity: 1; }
-
         .container { padding: 25px; max-width: 1200px; margin: 0 auto; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 20px; }
         .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
-        
         .page-content { display: none; }
         .page-content.active { display: block; }
-
         .bal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
         .bal-card { background: var(--accent); color: white; padding: 20px; border-radius: 10px; text-align: center; }
-        .bal-card strong { font-size: 1.5em; display: block; margin-top: 5px; }
-
+        .bal-card strong { font-size: 1.5em; display: block; }
         input, select, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box; }
         button { cursor: pointer; border: none; font-weight: bold; }
         .btn-go { background: var(--success); color: white; }
         .btn-main { background: var(--primary); color: white; }
-        
         .due-banner { background: #fff9e6; border-left: 5px solid var(--warning); padding: 15px; border-radius: 8px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
         table { width: 100%; border-collapse: collapse; }
         th, td { text-align: left; padding: 12px; border-bottom: 1px solid #eee; }
@@ -42,15 +36,12 @@
 </nav>
 
 <div class="container">
-    
     <div id="view-dash" class="page-content active">
         <div id="recurring-alerts"></div>
-
         <div class="card">
             <h2>Account Balances</h2>
             <div id="render-balances" class="bal-grid"></div>
         </div>
-
         <div class="grid">
             <div class="left-col">
                 <div class="card">
@@ -68,7 +59,6 @@
                         <button class="btn-go">Add Transaction</button>
                     </form>
                 </div>
-
                 <div class="card">
                     <h3>Recent History</h3>
                     <table>
@@ -77,7 +67,6 @@
                     </table>
                 </div>
             </div>
-
             <div class="right-col">
                 <div class="card" style="border-left: 5px solid var(--warning);">
                     <h3>Add Recurring Payment</h3>
@@ -90,191 +79,6 @@
                         <button class="btn-main">Save Template</button>
                     </form>
                 </div>
-
                 <div class="card">
                     <h3>Setup Bank Account</h3>
-                    <form onsubmit="postAcc(event)">
-                        <input type="text" id="acc-name" placeholder="Bank Name" required>
-                        <input type="number" id="acc-init" placeholder="Opening Balance £" step="0.01" required>
-                        <button class="btn-main">Add Account</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="view-cats" class="page-content">
-        <div class="card">
-            <h2>Category & Recurring Management</h2>
-            <table>
-                <thead><tr><th>Category Name</th><th>Type</th><th>Action</th></tr></thead>
-                <tbody id="render-cat-table"></tbody>
-            </table>
-            <h3 style="margin-top:30px;">Add New Category</h3>
-            <form onsubmit="postCat(event)" style="display:flex; gap:10px;">
-                <input type="text" id="new-cat-name" placeholder="Name" required>
-                <select id="new-cat-type" style="width:200px;">
-                    <option value="exp">Expense (-)</option>
-                    <option value="inc">Income (+)</option>
-                </select>
-                <button class="btn-go" style="width:150px;">Add Row</button>
-            </form>
-        </div>
-    </div>
-</div>
-
-<script>
-    // 1. NAVIGATION (Defined first to prevent ReferenceErrors)
-    function switchPage(target) {
-        const dashView = document.getElementById('view-dash');
-        const catsView = document.getElementById('view-cats');
-        const dashTab = document.getElementById('tab-dash');
-        const catsTab = document.getElementById('tab-cats');
-
-        if (!dashView || !catsView) return; // Safety check
-
-        dashView.classList.toggle('active', target === 'dash');
-        catsView.classList.toggle('active', target === 'cats');
-        dashTab.classList.toggle('active', target === 'dash');
-        catsTab.classList.toggle('active', target === 'cats');
-    }
-
-    // 2. DATA
-    const KEY = 'FINANCE_SYSTEM_2026';
-    let data = JSON.parse(localStorage.getItem(KEY)) || {
-        accounts: {}, txs: [], templates: [],
-        categories: [
-            { name: "Salary", type: "inc" },
-            { name: "Rent", type: "exp" },
-            { name: "Groceries", type: "exp" }
-        ]
-    };
-
-    // 3. CORE FUNCTIONS
-    function sync() {
-        localStorage.setItem(KEY, JSON.stringify(data));
-        renderBalances();
-        renderHistory();
-        renderCats();
-        renderRecurringAlerts();
-        updateDropdowns();
-    }
-
-    function postAcc(e) {
-        e.preventDefault();
-        data.accounts[document.getElementById('acc-name').value] = parseFloat(document.getElementById('acc-init').value);
-        sync(); e.target.reset();
-    }
-
-    function postCat(e) {
-        e.preventDefault();
-        data.categories.push({ name: document.getElementById('new-cat-name').value, type: document.getElementById('new-cat-type').value });
-        sync(); e.target.reset();
-    }
-
-    function postTx(e) {
-        e.preventDefault();
-        const cat = data.categories.find(c => c.name === document.getElementById('sel-cat').value);
-        data.txs.push({
-            id: Date.now(),
-            desc: document.getElementById('tx-desc').value,
-            amt: parseFloat(document.getElementById('tx-amt').value),
-            date: document.getElementById('tx-date').value,
-            acc: document.getElementById('sel-acc').value,
-            type: cat ? cat.type : 'exp'
-        });
-        sync(); e.target.reset();
-        document.getElementById('tx-date').valueAsDate = new Date();
-    }
-
-    function postTemplate(e) {
-        e.preventDefault();
-        const cat = data.categories.find(c => c.name === document.getElementById('rt-cat').value);
-        data.templates.push({
-            id: Date.now(), desc: document.getElementById('rt-desc').value,
-            amt: parseFloat(document.getElementById('rt-amt').value),
-            nextDate: document.getElementById('rt-date').value,
-            acc: document.getElementById('rt-acc').value,
-            cat: document.getElementById('rt-cat').value,
-            type: cat ? cat.type : 'exp'
-        });
-        sync(); e.target.reset();
-    }
-
-    function triggerRecurring(id) {
-        const t = data.templates.find(x => x.id === id);
-        data.txs.push({ id: Date.now(), desc: t.desc, amt: t.amt, date: t.nextDate, acc: t.acc, type: t.type });
-        let d = new Date(t.nextDate);
-        d.setMonth(d.getMonth() + 1);
-        t.nextDate = d.toISOString().split('T')[0];
-        sync();
-    }
-
-    // 4. RENDERING
-    function renderBalances() {
-        const area = document.getElementById('render-balances');
-        const names = Object.keys(data.accounts);
-        area.innerHTML = names.length === 0 ? '<p style="padding:10px;">No accounts found.</p>' : '';
-        names.forEach(name => {
-            const net = data.txs.filter(t => t.acc === name).reduce((acc, t) => acc + (t.type === 'inc' ? t.amt : -t.amt), 0);
-            area.innerHTML += `<div class="bal-card">${name}<strong>£${(data.accounts[name] + net).toFixed(2)}</strong></div>`;
-        });
-    }
-
-    function renderHistory() {
-        document.getElementById('render-history').innerHTML = data.txs.slice().reverse().slice(0,10).map(t => `
-            <tr><td>${t.date}</td><td>${t.desc}</td><td style="color:${t.type==='inc'?'green':'red'}">£${t.amt.toFixed(2)}</td><td>${t.acc}</td>
-            <td><button onclick="deleteTx(${t.id})" style="color:red; background:none; width:auto;">&times;</button></td></tr>
-        `).join('');
-    }
-
-    function renderCats() {
-        document.getElementById('render-cat-table').innerHTML = data.categories.map((c, i) => `
-            <tr><td><strong>${c.name}</strong></td><td>${c.type==='inc'?'Income':'Expense'}</td>
-            <td><button onclick="data.categories.splice(${i},1); sync();" style="color:red; background:none; width:auto;">Delete</button></td></tr>
-        `).join('');
-    }
-
-    function renderRecurringAlerts() {
-        const area = document.getElementById('recurring-alerts');
-        const today = new Date().toISOString().split('T')[0];
-        area.innerHTML = '';
-        data.templates.forEach(t => {
-            if(t.nextDate <= today) {
-                area.innerHTML += `<div class="due-banner">
-                    <span><strong>Pending Payment:</strong> ${t.desc} (£${t.amt})</span>
-                    <button onclick="triggerRecurring(${t.id})" class="btn-go" style="width:120px; margin:0;">Post</button>
-                </div>`;
-            }
-        });
-    }
-
-    function updateDropdowns() {
-        const accs = Object.keys(data.accounts);
-        const cats = data.categories;
-        const accHtml = accs.map(a => `<option>${a}</option>`).join('');
-        const catHtml = cats.map(c => `<option>${c.name}</option>`).join('');
-        
-        ['sel-acc', 'rt-acc'].forEach(id => {
-            const el = document.getElementById(id);
-            if(el) el.innerHTML = accHtml;
-        });
-        ['sel-cat', 'rt-cat'].forEach(id => {
-            const el = document.getElementById(id);
-            if(el) el.innerHTML = catHtml;
-        });
-    }
-
-    function deleteTx(id) {
-        data.txs = data.txs.filter(t => t.id !== id);
-        sync();
-    }
-
-    window.onload = () => {
-        document.getElementById('tx-date').valueAsDate = new Date();
-        document.getElementById('rt-date').valueAsDate = new Date();
-        sync();
-    };
-</script>
-</body>
-</html>
+                    <form

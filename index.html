@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+To allow for Opening Balances, we need to change how the "Balance" is calculated. Instead of just summing transactions, the formula will now be:$$\text{Current Balance} = \text{Opening Balance} + \sum \text{Income} - \sum \text{Expenses}$$I have updated the code to include a Sterling (£) symbol throughout and a new "Manage Accounts" section where you can set or edit the starting balance for any account.The Updated index.html (with Opening Balances and £)Replace your GitHub file with this code:HTML<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finance Monitor Pro + Accounts</title>
+    <title>Finance Monitor Pro (£)</title>
     <style>
         :root { --primary: #2c3e50; --success: #27ae60; --danger: #e74c3c; --accent: #3498db; }
         body { font-family: 'Segoe UI', sans-serif; max-width: 1200px; margin: 0 auto; background: #f0f2f5; padding: 20px; display: flex; flex-wrap: wrap; gap: 20px; }
@@ -12,7 +12,7 @@
         .card-panel { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
         .main-content { flex: 2; min-width: 350px; }
         .side-content { flex: 1; min-width: 300px; }
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 20px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 20px; }
         .stat-card { padding: 15px; border-radius: 8px; color: white; text-align: center; }
         form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
         .full-width { grid-column: span 2; }
@@ -21,7 +21,7 @@
         button { cursor: pointer; border: none; border-radius: 6px; padding: 8px; font-weight: bold; }
         .btn-add { background: var(--primary); color: white; }
         .mgr-section { margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; }
-        .pill { display: inline-block; background: #eee; padding: 2px 8px; border-radius: 10px; margin: 2px; font-size: 0.8em; }
+        .acc-item { display: flex; justify-content: space-between; align-items: center; background: #f9f9f9; padding: 8px; border-radius: 6px; margin-bottom: 5px; font-size: 0.9em; }
     </style>
 </head>
 <body>
@@ -50,7 +50,7 @@
             <select id="cat-select" class="full-width"></select>
             <button type="submit" class="btn-add full-width">Save Transaction</button>
         </form>
-        <div style="max-height: 300px; overflow-y: auto;">
+        <div style="max-height: 400px; overflow-y: auto;">
             <table>
                 <thead><tr><th>Date</th><th>Acc</th><th>Desc</th><th>Cat</th><th>Amt</th><th></th></tr></thead>
                 <tbody id="tx-list"></tbody>
@@ -61,23 +61,24 @@
 
 <div class="side-content">
     <div class="card-panel">
-        <h3>Settings & Categories</h3>
+        <h3>Manage Accounts</h3>
         <div class="mgr-section">
-            <strong>Add Account:</strong>
-            <form onsubmit="addAccount(event)" style="display:flex; margin-top:5px;">
-                <input type="text" id="new-acc-name" placeholder="e.g. Savings" required>
-                <button class="btn-add">Add</button>
+            <strong>Add/Update Account:</strong>
+            <form onsubmit="upsertAccount(event)" style="display:grid; grid-template-columns: 1fr 1fr; gap:5px; margin-top:10px;">
+                <input type="text" id="new-acc-name" placeholder="Account Name" required>
+                <input type="number" id="new-acc-open" placeholder="Opening Bal £" step="0.01" required>
+                <button class="btn-add full-width">Add / Update Balance</button>
             </form>
-            <div id="acc-list-pills"></div>
+            <div id="acc-list-detailed" style="margin-top:10px;"></div>
         </div>
+        
         <div class="mgr-section">
             <strong>Add Category:</strong>
-            <form onsubmit="addCategory(event)" style="display:flex; margin-top:5px;">
-                <input type="text" id="new-cat-name" placeholder="e.g. Netflix" required>
-                <select id="new-cat-type"><option value="exp">Expense</option><option value="inc">Income</option></select>
+            <form onsubmit="addCategory(event)" style="display:flex; margin-top:5px; gap:5px;">
+                <input type="text" id="new-cat-name" placeholder="e.g. Subs" required>
+                <select id="new-cat-type"><option value="exp">Exp</option><option value="inc">Inc</option></select>
                 <button class="btn-add">Add</button>
             </form>
-            <div id="cat-list-pills"></div>
         </div>
     </div>
 
@@ -88,25 +89,26 @@
 </div>
 
 <script>
-    const PIN = "588609";
-    // --- AUTH ---
+    const PIN = "1234";
     function unlock() { if(document.getElementById('pin-entry').value === PIN) { sessionStorage.setItem('auth', 'ok'); document.getElementById('lock-screen').style.display = 'none'; } }
     function lock() { sessionStorage.removeItem('auth'); location.reload(); }
     if(sessionStorage.getItem('auth') === 'ok') document.getElementById('lock-screen').style.display = 'none';
 
-    // --- DATA ---
-    let data = JSON.parse(localStorage.getItem('fin_v2')) || {
-        accounts: ["Cash", "Bank"],
+    // --- DATA STRUCTURE ---
+    // data.accounts is now an object: { "Bank": 1000.00 } where the value is the opening balance
+    let data = JSON.parse(localStorage.getItem('fin_v3')) || {
+        accounts: { "Cash": 0, "Bank": 0 },
         categories: { inc: ["Salary", "Gift"], exp: ["Food", "Rent", "Transport"] },
         txs: []
     };
 
-    function sync() { localStorage.setItem('fin_v2', JSON.stringify(data)); render(); }
+    function sync() { localStorage.setItem('fin_v3', JSON.stringify(data)); render(); }
 
-    function addAccount(e) {
+    function upsertAccount(e) {
         e.preventDefault();
         const name = document.getElementById('new-acc-name').value;
-        if(!data.accounts.includes(name)) data.accounts.push(name);
+        const opening = parseFloat(document.getElementById('new-acc-open').value);
+        data.accounts[name] = opening; // This adds or updates existing
         e.target.reset(); sync();
     }
 
@@ -137,32 +139,35 @@
     function deleteTx(id) { data.txs = data.txs.filter(t => t.id !== id); sync(); }
 
     function render() {
-        // Update Selects
+        // Selects
         const accSel = document.getElementById('acc-select');
+        accSel.innerHTML = Object.keys(data.accounts).map(a => `<option value="${a}">${a}</option>`).join('');
+        
         const catSel = document.getElementById('cat-select');
-        accSel.innerHTML = data.accounts.map(a => `<option value="${a}">${a}</option>`).join('');
         catSel.innerHTML = `<optgroup label="Income">${data.categories.inc.map(c => `<option value="${c}">${c}</option>`).join('')}</optgroup>
                             <optgroup label="Expenses">${data.categories.exp.map(c => `<option value="${c}">${c}</option>`).join('')}</optgroup>`;
 
-        // Update Account Balances
+        // Account Display & Math
         const accDisplay = document.getElementById('accounts-display');
+        const accListDet = document.getElementById('acc-list-detailed');
         accDisplay.innerHTML = '';
-        data.accounts.forEach(acc => {
-            const bal = data.txs.filter(t => t.acc === acc).reduce((sum, t) => sum + (t.type === 'inc' ? t.amt : -t.amt), 0);
-            accDisplay.innerHTML += `<div class="stat-card" style="background:var(--accent)">${acc}<br><strong>$${bal.toFixed(2)}</strong></div>`;
-        });
+        accListDet.innerHTML = '';
 
-        // Update Pills
-        document.getElementById('acc-list-pills').innerHTML = data.accounts.map(a => `<span class="pill">${a}</span>`).join('');
-        document.getElementById('cat-list-pills').innerHTML = [...data.categories.inc, ...data.categories.exp].map(c => `<span class="pill">${c}</span>`).join('');
+        for (const [accName, openingBal] of Object.entries(data.accounts)) {
+            const txTotal = data.txs.filter(t => t.acc === accName).reduce((sum, t) => sum + (t.type === 'inc' ? t.amt : -t.amt), 0);
+            const currentBal = openingBal + txTotal;
+            
+            accDisplay.innerHTML += `<div class="stat-card" style="background:var(--accent)">${accName}<br><strong>£${currentBal.toFixed(2)}</strong></div>`;
+            accListDet.innerHTML += `<div class="acc-item"><span>${accName} (Start: £${openingBal})</span></div>`;
+        }
 
-        // Update Table
+        // Transactions Table
         const list = document.getElementById('tx-list');
         list.innerHTML = '';
         data.txs.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(t => {
             const row = list.insertRow();
             row.innerHTML = `<td>${t.date}</td><td>${t.acc}</td><td>${t.desc}</td><td>${t.cat}</td>
-                             <td style="color:${t.type === 'inc' ? 'green' : 'red'}">$${t.amt.toFixed(2)}</td>
+                             <td style="color:${t.type === 'inc' ? 'green' : 'red'}">£${t.amt.toFixed(2)}</td>
                              <td><button onclick="deleteTx(${t.id})" style="color:var(--danger); background:none;">&times;</button></td>`;
         });
     }
@@ -171,7 +176,7 @@
         let csv = "Date,Account,Description,Category,Amount,Type\n" + data.txs.map(t => `${t.date},${t.acc},${t.desc},${t.cat},${t.amt},${t.type}`).join("\n");
         let link = document.createElement('a');
         link.href = 'data:text/csv;charset=utf-8,' + encodeURI(csv);
-        link.download = 'finance_full_report.csv';
+        link.download = 'finance_report.csv';
         link.click();
     }
 

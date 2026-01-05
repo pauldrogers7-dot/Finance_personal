@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finance Pro: Force Update 2026</title>
+    <title>Finance Pro: Recurring Restored</title>
     <style>
-        :root { --primary: #2c3e50; --success: #27ae60; --danger: #e74c3c; --accent: #3498db; }
+        :root { --primary: #2c3e50; --success: #27ae60; --danger: #e74c3c; --accent: #3498db; --warning: #f39c12; }
         body { font-family: sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
         
-        /* LOCK SCREEN - Forced to Top */
         #lock-screen { 
             position: fixed; inset: 0; background: #2c3e50; 
             display: flex; flex-direction: column; justify-content: center; align-items: center; 
@@ -16,7 +15,6 @@
         }
         .lock-box { background: white; padding: 40px; border-radius: 15px; width: 320px; text-align: center; color: #333; }
         
-        /* UI PANELS */
         .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; max-width: 1200px; margin: 0 auto; }
         .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
         
@@ -26,10 +24,12 @@
         .btn-go { background: var(--success); color: white; }
         .btn-reset { background: none; color: var(--danger); text-decoration: underline; border: none; font-size: 0.9em; margin-top: 20px; }
         
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9em; }
         th, td { text-align: left; padding: 12px; border-bottom: 1px solid #eee; }
-        .bal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .bal-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
         .bal-card { background: var(--accent); color: white; padding: 15px; border-radius: 8px; text-align: center; }
+        
+        .due-banner { background: #fff9e6; border: 2px solid var(--warning); padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
     </style>
 </head>
 <body>
@@ -37,26 +37,23 @@
 <div id="lock-screen">
     <div class="lock-box">
         <h2 style="margin-top:0">Vault Locked</h2>
-        <p>Enter PIN (Default: 1234)</p>
         <input type="password" id="pin-input" placeholder="PIN" style="font-size: 2em; text-align: center;" autofocus>
         <button onclick="checkPin()" class="btn-main">Unlock Dashboard</button>
-        
-        <button onclick="fullSystemReset()" class="btn-reset">
-            PIN NOT WORKING? CLICK HERE TO RESET APP
-        </button>
+        <button onclick="fullSystemReset()" class="btn-reset">RESET APP (Clears Cache)</button>
     </div>
 </div>
 
 <div class="grid">
     <div class="main">
-        <div class="card">
+        <div id="due-section"></div> <div class="card">
             <h2>Account Balances</h2>
             <div id="bal-area" class="bal-grid"></div>
         </div>
+
         <div class="card">
             <h3>Transaction History</h3>
             <table>
-                <thead><tr><th>Date</th><th>Desc</th><th>Amt</th><th>Acc</th></tr></thead>
+                <thead><tr><th>Date</th><th>Desc</th><th>Amt</th><th>Acc</th><th></th></tr></thead>
                 <tbody id="history-body"></tbody>
             </table>
         </div>
@@ -65,25 +62,31 @@
     <div class="side">
         <div class="card" style="border-top: 5px solid var(--danger);">
             <h3>Account Settings</h3>
-            <p style="font-size: 0.8em;">Manage your PIN directly:</p>
             <form onsubmit="updateUserPin(event)">
-                <input type="password" id="new-pin" placeholder="New PIN" required>
-                <button class="btn-main">Save New PIN</button>
+                <input type="password" id="new-pin" placeholder="Set New PIN" required>
+                <button class="btn-main">Save PIN</button>
             </form>
         </div>
 
-        <div class="card">
-            <h3>Add Transaction</h3>
-            <form onsubmit="addEntry(event)">
-                <input type="text" id="t-desc" placeholder="Description" required>
-                <input type="number" id="t-amt" placeholder="Amount £" step="0.01" required>
-                <select id="t-acc"></select>
-                <select id="t-type">
+        <div class="card" style="border-left: 5px solid var(--warning);">
+            <h3>Recurring Templates</h3>
+            <form onsubmit="addTemplate(event)">
+                <input type="text" id="rt-desc" placeholder="Rent/Salary/Netflix" required>
+                <input type="number" id="rt-amt" placeholder="Amount £" step="0.01" required>
+                <input type="date" id="rt-date" required>
+                <select id="rt-freq">
+                    <option value="7">Weekly</option>
+                    <option value="14">Fortnightly</option>
+                    <option value="30">Monthly</option>
+                </select>
+                <select id="rt-acc"></select>
+                <select id="rt-type">
                     <option value="exp">Expense (-)</option>
                     <option value="inc">Income (+)</option>
                 </select>
-                <button class="btn-go">Post & Update Balance</button>
+                <button class="btn-main">Save Template</button>
             </form>
+            <div id="template-list" style="margin-top:15px; font-size:0.8em;"></div>
         </div>
 
         <div class="card">
@@ -98,58 +101,62 @@
 </div>
 
 <script>
-    // CACHE BUSTING STORAGE KEY
     const DB_KEY = 'Finance_v2026_FINAL';
 
     let state = JSON.parse(localStorage.getItem(DB_KEY)) || {
         pin: "1234",
         accounts: { "Main Bank": 0 },
-        txs: []
+        txs: [],
+        templates: []
     };
 
     function checkPin() {
-        const val = document.getElementById('pin-input').value;
-        if(val === state.pin) {
+        if(document.getElementById('pin-input').value === state.pin) {
             sessionStorage.setItem('unlocked', 'true');
             document.getElementById('lock-screen').style.display = 'none';
             refreshUI();
-        } else {
-            alert("Wrong PIN. Try 1234 or use the Reset link below.");
-        }
+        } else { alert("Wrong PIN."); }
     }
 
     function fullSystemReset() {
-        if(confirm("This will delete all data and reset the PIN to 1234. Continue?")) {
-            localStorage.clear();
-            sessionStorage.clear();
-            location.reload();
-        }
+        if(confirm("Wipe everything?")) { localStorage.clear(); location.reload(); }
     }
 
-    function updateUserPin(e) {
+    function addTemplate(e) {
         e.preventDefault();
-        state.pin = document.getElementById('new-pin').value;
+        state.templates.push({
+            id: Date.now(),
+            desc: document.getElementById('rt-desc').value,
+            amt: parseFloat(document.getElementById('rt-amt').value),
+            nextDate: document.getElementById('rt-date').value,
+            freq: parseInt(document.getElementById('rt-freq').value),
+            acc: document.getElementById('rt-acc').value,
+            type: document.getElementById('rt-type').value
+        });
         save();
-        alert("PIN Changed Successfully!");
         e.target.reset();
+    }
+
+    function postRecurring(id) {
+        const t = state.templates.find(x => x.id === id);
+        state.txs.push({
+            desc: t.desc,
+            amt: t.amt,
+            acc: t.acc,
+            type: t.type,
+            date: t.nextDate
+        });
+        
+        // Update next date
+        let d = new Date(t.nextDate);
+        d.setDate(d.getDate() + t.freq);
+        t.nextDate = d.toISOString().split('T')[0];
+        save();
     }
 
     function addNewAcc(e) {
         e.preventDefault();
         state.accounts[document.getElementById('a-name').value] = parseFloat(document.getElementById('a-bal').value);
-        save();
-        e.target.reset();
-    }
-
-    function addEntry(e) {
-        e.preventDefault();
-        state.txs.push({
-            desc: document.getElementById('t-desc').value,
-            amt: parseFloat(document.getElementById('t-amt').value),
-            acc: document.getElementById('t-acc').value,
-            type: document.getElementById('t-type').value,
-            date: new Date().toLocaleDateString()
-        });
         save();
         e.target.reset();
     }
@@ -161,11 +168,10 @@
 
     function refreshUI() {
         if(sessionStorage.getItem('unlocked') !== 'true') return;
-
         const accNames = Object.keys(state.accounts);
-        document.getElementById('t-acc').innerHTML = accNames.map(n => `<option>${n}</option>`).join('');
+        document.getElementById('rt-acc').innerHTML = accNames.map(n => `<option>${n}</option>`).join('');
 
-        // Calculate and Show Balances
+        // 1. Show Balances
         const balArea = document.getElementById('bal-area');
         balArea.innerHTML = '';
         accNames.forEach(name => {
@@ -174,23 +180,14 @@
             balArea.innerHTML += `<div class="bal-card">${name}<br><strong>£${total.toFixed(2)}</strong></div>`;
         });
 
-        // History
-        document.getElementById('history-body').innerHTML = state.txs.slice().reverse().map(t => `
-            <tr>
-                <td>${t.date}</td>
-                <td>${t.desc}</td>
-                <td style="color:${t.type==='inc'?'green':'red'}">£${t.amt.toFixed(2)}</td>
-                <td>${t.acc}</td>
-            </tr>
+        // 2. Show History
+        document.getElementById('history-body').innerHTML = state.txs.slice().reverse().slice(0,10).map((t, idx) => `
+            <tr><td>${t.date}</td><td>${t.desc}</td><td style="color:${t.type==='inc'?'green':'red'}">£${t.amt.toFixed(2)}</td><td>${t.acc}</td>
+            <td><button onclick="state.txs.splice(${state.txs.length - 1 - idx}, 1); save();" style="color:red; background:none; width:auto; padding:0;">&times;</button></td></tr>
         `).join('');
-    }
 
-    // Auto-unlock if already authorized
-    if(sessionStorage.getItem('unlocked') === 'true') {
-        document.getElementById('lock-screen').style.display = 'none';
-        refreshUI();
-    }
-</script>
-
-</body>
-</html>
+        // 3. Show Templates List
+        document.getElementById('template-list').innerHTML = state.templates.map(t => `
+            <div style="border-bottom:1px solid #eee; padding:5px; display:flex; justify-content:space-between;">
+                <span>${t.desc} (£${t.amt})</span>
+                <button onclick="state.templates =

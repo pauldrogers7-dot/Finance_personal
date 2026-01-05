@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finance Pro: Settings & Security (£)</title>
+    <title>Finance Pro: Security Fixed (£)</title>
     <style>
         :root { --primary: #2c3e50; --success: #27ae60; --danger: #e74c3c; --accent: #3498db; --warning: #f39c12; }
         body { font-family: 'Segoe UI', sans-serif; max-width: 1400px; margin: 0 auto; background: #f0f2f5; padding: 20px; display: flex; flex-wrap: wrap; gap: 20px; }
         #lock-screen { position: fixed; inset: 0; background: var(--primary); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-        .modal-box { background: white; padding: 30px; border-radius: 12px; width: 350px; text-align: center; }
+        .modal-box { background: white; padding: 30px; border-radius: 12px; width: 320px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
         .card-panel { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
         .main-content { flex: 2; min-width: 450px; }
         .side-content { flex: 1; min-width: 350px; }
@@ -16,11 +16,10 @@
         .stat-card { padding: 15px; border-radius: 8px; color: white; text-align: center; }
         form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
         .full-width { grid-column: span 2; }
-        input, select { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        input, select { padding: 10px; border: 1px solid #ccc; border-radius: 6px; }
         table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
         th, td { padding: 10px; text-align: left; border-bottom: 1px solid #f0f0f0; }
-        button { cursor: pointer; border: none; border-radius: 6px; padding: 8px; font-weight: bold; transition: opacity 0.2s; }
-        button:hover { opacity: 0.9; }
+        button { cursor: pointer; border: none; border-radius: 6px; padding: 10px; font-weight: bold; }
         .btn-add { background: var(--primary); color: white; }
         .btn-post { background: var(--success); color: white; }
         .btn-danger { background: var(--danger); color: white; }
@@ -31,10 +30,11 @@
 
 <div id="lock-screen">
     <div class="modal-box">
-        <h2>Finance Vault</h2>
+        <h2 style="margin-top:0">Finance Vault</h2>
         <p>Enter PIN to Unlock</p>
-        <input type="password" id="pin-entry" placeholder="PIN" style="width:100%; margin: 10px 0; font-size: 1.2em; text-align: center;">
-        <button onclick="unlock()" class="btn-add" style="width:100%">Unlock Dashboard</button>
+        <input type="password" id="pin-entry" placeholder="PIN" style="width:100%; margin: 10px 0; font-size: 1.2em; text-align: center;" autofocus>
+        <button onclick="unlock()" class="btn-add" style="width:100%; padding: 12px;">Unlock Dashboard</button>
+        <p style="font-size: 0.7em; color: #777; margin-top: 15px;">First time? Default PIN is 1234</p>
     </div>
 </div>
 
@@ -63,7 +63,6 @@
 <div class="side-content">
     <div class="card-panel" style="border-top: 5px solid var(--danger);">
         <h3>Security Settings</h3>
-        <p style="font-size: 0.8em; color: #666;">Change your access PIN here.</p>
         <form onsubmit="changePin(event)">
             <input type="password" id="new-pin" placeholder="New PIN" required>
             <input type="password" id="confirm-pin" placeholder="Confirm PIN" required>
@@ -74,7 +73,7 @@
     <div class="card-panel" style="background: #f8f9fa; border-left: 5px solid var(--success);">
         <h3>One-Off Transaction</h3>
         <form onsubmit="addOneOff(event)">
-            <input type="text" id="one-desc" placeholder="Grocery / Fuel / Gift" required class="full-width">
+            <input type="text" id="one-desc" placeholder="Label (e.g. Tesco)" required class="full-width">
             <input type="number" id="one-amt" placeholder="Amount £" step="0.01" required>
             <input type="date" id="one-date" required>
             <select id="one-acc"></select>
@@ -84,10 +83,10 @@
     </div>
 
     <div class="card-panel">
-        <h3>Manage Bank Accounts</h3>
+        <h3>Manage Accounts</h3>
         <form onsubmit="upsertAccount(event)">
-            <input type="text" id="new-acc-name" placeholder="Bank Name" required>
-            <input type="number" id="new-acc-open" placeholder="Opening £" step="0.01" required>
+            <input type="text" id="new-acc-name" placeholder="Account Name" required>
+            <input type="number" id="new-acc-open" placeholder="Starting Bal £" step="0.01" required>
             <button class="btn-add full-width">Set Balance</button>
         </form>
     </div>
@@ -95,7 +94,7 @@
     <div class="card-panel">
         <h3>Recurring Templates</h3>
         <form onsubmit="addTemplate(event)">
-            <input type="text" id="rec-desc" placeholder="Salary/Rent" required class="full-width">
+            <input type="text" id="rec-desc" placeholder="Rent/Salary" required class="full-width">
             <input type="number" id="rec-amt" placeholder="Amount £" step="0.01" required>
             <input type="date" id="rec-start" required>
             <select id="rec-freq">
@@ -117,8 +116,8 @@
 </div>
 
 <script>
-    // Initial Data Load
-    let data = JSON.parse(localStorage.getItem('fin_v10')) || {
+    // 1. DATA INITIALIZATION (Load PIN and Data)
+    let data = JSON.parse(localStorage.getItem('fin_v11')) || {
         config: { pin: "1234" },
         accounts: { "Main Bank": 0 },
         categories: { inc: ["Salary", "Other Inc"], exp: ["Rent", "Food", "Leisure", "Bills"] },
@@ -126,6 +125,7 @@
         templates: [] 
     };
 
+    // 2. SECURITY FUNCTIONS (Defining unlock immediately)
     function unlock() { 
         const entry = document.getElementById('pin-entry').value;
         if(entry === data.config.pin) { 
@@ -133,14 +133,14 @@
             document.getElementById('lock-screen').style.display = 'none'; 
             render(); 
         } else {
-            alert("Incorrect PIN");
+            alert("Incorrect PIN. If you are stuck, try 1234.");
         }
     }
 
-    function lock() { sessionStorage.removeItem('auth'); location.reload(); }
-    if(sessionStorage.getItem('auth') === 'ok') document.getElementById('lock-screen').style.display = 'none';
-
-    function sync() { localStorage.setItem('fin_v10', JSON.stringify(data)); render(); }
+    function lock() { 
+        sessionStorage.removeItem('auth'); 
+        location.reload(); 
+    }
 
     function changePin(e) {
         e.preventDefault();
@@ -156,6 +156,12 @@
         }
     }
 
+    // 3. CORE APP LOGIC
+    function sync() { 
+        localStorage.setItem('fin_v11', JSON.stringify(data)); 
+        render(); 
+    }
+
     function addOneOff(e) {
         e.preventDefault();
         const cat = document.getElementById('one-cat').value;
@@ -168,13 +174,16 @@
             cat: cat,
             type: data.categories.inc.includes(cat) ? 'inc' : 'exp'
         });
-        e.target.reset(); document.getElementById('one-date').valueAsDate = new Date(); sync();
+        e.target.reset(); 
+        document.getElementById('one-date').valueAsDate = new Date(); 
+        sync();
     }
 
     function upsertAccount(e) {
         e.preventDefault();
         data.accounts[document.getElementById('new-acc-name').value] = parseFloat(document.getElementById('new-acc-open').value);
-        e.target.reset(); sync();
+        e.target.reset(); 
+        sync();
     }
 
     function addTemplate(e) {
@@ -188,7 +197,8 @@
             acc: document.getElementById('rec-acc').value,
             cat: document.getElementById('rec-cat').value
         });
-        e.target.reset(); sync();
+        e.target.reset(); 
+        sync();
     }
 
     function postRecurring(templateId, dateStr) {
@@ -201,41 +211,4 @@
                 desc: temp.desc,
                 amt: temp.amt,
                 cat: temp.cat,
-                type: data.categories.inc.includes(temp.cat) ? 'inc' : 'exp'
-            });
-            let next = new Date(dateStr);
-            next.setDate(next.getDate() + temp.freq);
-            temp.startDate = next.toISOString().slice(0, 10);
-            sync();
-        }
-    }
-
-    function render() {
-        const accs = Object.keys(data.accounts);
-        const cats = [...data.categories.inc, ...data.categories.exp];
-        const today = new Date(); today.setHours(0,0,0,0);
-
-        ['one-acc', 'rec-acc'].forEach(id => document.getElementById(id).innerHTML = accs.map(a => `<option value="${a}">${a}</option>`).join(''));
-        ['one-cat', 'rec-cat'].forEach(id => document.getElementById(id).innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join(''));
-
-        const accDisplay = document.getElementById('accounts-display');
-        accDisplay.innerHTML = '';
-        accs.forEach(name => {
-            const txTotal = data.txs.filter(t => t.acc === name).reduce((s, t) => s + (t.type === 'inc' ? t.amt : -t.amt), 0);
-            accDisplay.innerHTML += `<div class="stat-card" style="background:var(--accent)">${name}<br><strong>£${(data.accounts[name] + txTotal).toFixed(2)}</strong></div>`;
-        });
-
-        const dueList = document.getElementById('due-now-list');
-        dueList.innerHTML = '';
-        data.templates.forEach(t => {
-            if (new Date(t.startDate) <= today) {
-                dueList.innerHTML += `<div class="due-item">
-                    <span><strong>${t.desc}</strong><br>Due: ${t.startDate} (£${t.amt})</span>
-                    <button onclick="postRecurring(${t.id}, '${t.startDate}')" class="btn-post">Confirm Post</button>
-                </div>`;
-            }
-        });
-
-        const list = document.getElementById('tx-list');
-        list.innerHTML = '';
-        data.txs.sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 15).forEach(t =>
+                type: data.categories.inc.includes(temp.cat)

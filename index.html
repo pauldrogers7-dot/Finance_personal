@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>FinanceVault: v160 Split Costs</title>
+    <title>FinanceVault: v170 Ledger Math</title>
     <style>
         body { font-family: sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
         .nav { background: #2c3e50; padding: 10px; display: flex; gap: 5px; }
         .n-btn { color: white; background: #34495e; border: none; padding: 12px; border-radius: 4px; cursor: pointer; font-weight: bold; flex: 1; }
         .page { display: none; padding: 20px; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; max-width: 750px; margin-left: auto; margin-right: auto; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; max-width: 850px; margin-left: auto; margin-right: auto; }
         .bal-card { background: #3498db; color: white; padding: 15px; border-radius: 6px; display: inline-block; margin: 5px; font-weight: bold; min-width: 120px; text-align: center; border: none; cursor: pointer; }
         input, select, button { width: 100%; padding: 10px; margin: 5px 0; box-sizing: border-box; }
         .btn-grn { background: #27ae60; color: white; border: none; font-weight: bold; cursor: pointer; }
@@ -16,7 +16,9 @@
         .btn-sml { width: auto; padding: 5px 10px; font-size: 12px; margin: 2px; cursor: pointer; }
         .split-row { display: flex; gap: 5px; background: #f9f9f9; padding: 5px; border-radius: 4px; margin-bottom: 5px; }
         table { width: 100%; border-collapse: collapse; }
-        td, th { border-bottom: 1px solid #ddd; padding: 8px; text-align: left; }
+        td, th { border-bottom: 1px solid #ddd; padding: 8px; text-align: left; font-size: 13px; }
+        .amt-pos { color: #27ae60; font-weight: bold; }
+        .amt-neg { color: #e74c3c; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -35,30 +37,41 @@
     </div>
 
     <div class="card">
-        <h3>Post Transaction (With Splits)</h3>
-        <input type="text" id="tx_main_ds" placeholder="Main Description (e.g. Tesco Shop)">
+        <h3>Post Transaction</h3>
+        <input type="date" id="tx_dt">
+        <input type="text" id="tx_main_ds" placeholder="Main Desc (e.g. Tesco)">
         <select id="tx_bk"></select>
-        
         <div id="split-area">
             <div class="split-row">
-                <input type="text" class="sp-ds" placeholder="Item (e.g. Groceries)" style="flex:2">
+                <input type="text" class="sp-ds" placeholder="Item" style="flex:2">
                 <input type="number" class="sp-am" placeholder="£" style="flex:1">
                 <select class="sp-ct" style="flex:1"></select>
             </div>
         </div>
         <button class="btn-sml" onclick="addSplitRow()">+ Add Split</button>
-        <button class="btn-grn" onclick="addTx()">Post Total Transaction</button>
+        <button class="btn-grn" onclick="addTx()">Post Total</button>
     </div>
 
     <div class="card">
         <h3>Ledger: <span id="l_title">Select Account</span></h3>
-        <table id="tbl_l"><thead><tr><th>Desc</th><th>Cat</th><th>£</th></tr></thead><tbody id="out-his"></tbody></table>
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Category</th>
+                    <th>Amount</th>
+                    <th>Balance</th>
+                </tr>
+            </thead>
+            <tbody id="out-his"></tbody>
+        </table>
     </div>
 </div>
 
 <div id="p2" class="page">
     <div class="card">
-        <h3>New Recurring</h3>
+        <h3>Recurring Template</h3>
         <input type="text" id="r_n" placeholder="Name">
         <input type="number" id="r_a" placeholder="£">
         <select id="r_bk"></select>
@@ -72,19 +85,17 @@
 
 <div id="p3" class="page">
     <div class="card">
-        <h3>Bank Setup</h3>
+        <h3>Add Bank</h3>
         <input type="text" id="bn_n" placeholder="Bank Name">
         <input type="number" id="bn_i" placeholder="Opening £">
-        <button class="btn-grn" onclick="addB()" style="background:#2c3e50">Add Bank</button>
+        <button class="btn-grn" onclick="addB()" style="background:#2c3e50">Save Bank</button>
     </div>
-
     <div class="card">
-        <h3 id="cat-head">Add Category</h3>
+        <h3>Categories</h3>
         <input type="hidden" id="edit_cat_idx" value="-1">
-        <input type="text" id="cn_n" placeholder="Category Name">
+        <input type="text" id="cn_n" placeholder="Name">
         <select id="cn_t"><option value="exp">Expense</option><option value="inc">Income</option></select>
-        <button class="btn-grn" id="btn-cat-save" onclick="saveC()">Save Category</button>
-        <button id="btn-cat-can" onclick="resetCatForm()" style="display:none; background:#ccc; border:none;">Cancel</button>
+        <button class="btn-grn" onclick="saveC()">Save Category</button>
     </div>
     <div class="card"><table><tbody id="out-cat"></tbody></table></div>
 </div>
@@ -97,98 +108,64 @@
 </div>
 
 <script>
-    var KEY = 'FV_STABLE_V160';
+    var KEY = 'FV_STABLE_V170';
     var db = { banks: [], cats: [], recs: [], txs: [] };
     var saved = localStorage.getItem(KEY);
     if(saved) { db = JSON.parse(saved); }
 
     function sh(id) {
-        document.getElementById('p1').style.display='none';
-        document.getElementById('p2').style.display='none';
-        document.getElementById('p3').style.display='none';
-        document.getElementById('p4').style.display='none';
-        document.getElementById(id).style.display='block';
+        ['p1','p2','p3','p4'].forEach(p => document.getElementById(p).style.display = 'none');
+        document.getElementById(id).style.display = 'block';
         dr();
     }
 
-    // Split Logic
     function addSplitRow() {
         var div = document.createElement('div');
         div.className = 'split-row';
         div.innerHTML = '<input type="text" class="sp-ds" placeholder="Item" style="flex:2"><input type="number" class="sp-am" placeholder="£" style="flex:1"><select class="sp-ct" style="flex:1"></select>';
         document.getElementById('split-area').appendChild(div);
-        dr(); // Refresh dropdowns in new row
+        dr();
     }
 
     function addTx() {
         var mainDs = document.getElementById('tx_main_ds').value;
-        var bankName = document.getElementById('tx_bk').value;
+        var bN = document.getElementById('tx_bk').value;
+        var dt = document.getElementById('tx_dt').value;
         var rows = document.querySelectorAll('.split-row');
-        var total = 0;
-
-        rows.forEach(row => {
-            var ds = row.querySelector('.sp-ds').value || mainDs;
-            var am = parseFloat(row.querySelector('.sp-am').value);
-            var ct = row.querySelector('.sp-ct').value;
-            
-            if(!isNaN(am)) {
+        
+        rows.forEach(r => {
+            var d = r.querySelector('.sp-ds').value || mainDs;
+            var a = parseFloat(r.querySelector('.sp-am').value);
+            var c = r.querySelector('.sp-ct').value;
+            if(!isNaN(a)) {
                 var type = 'exp';
-                for(var i=0; i<db.cats.length; i++) { if(db.cats[i].n == ct) type = db.cats[i].t; }
-                
-                db.txs.push({ d: ds, a: am, b: bankName, c: ct, t: type });
-                total += (type == 'inc' ? am : -am);
+                db.cats.forEach(cat => { if(cat.n == c) type = cat.t; });
+                db.txs.push({ dt: dt, d: d, a: a, b: bN, c: c, t: type });
             }
         });
-
-        for(var j=0; j<db.banks.length; j++) {
-            if(db.banks[j].n == bankName) db.banks[j].cur += total;
-        }
-        
-        document.getElementById('tx_main_ds').value = "";
-        document.getElementById('split-area').innerHTML = '<div class="split-row"><input type="text" class="sp-ds" placeholder="Item" style="flex:2"><input type="number" class="sp-am" placeholder="£" style="flex:1"><select class="sp-ct" style="flex:1"></select></div>';
         sv();
     }
 
-    // Category Edit/Save
     function saveC() {
         var idx = document.getElementById('edit_cat_idx').value;
-        var n = document.getElementById('cn_n').value;
-        var t = document.getElementById('cn_t').value;
-        if(n) {
-            if(idx == "-1") db.cats.push({n:n, t:t});
-            else db.cats[idx] = {n:n, t:t};
-            resetCatForm(); sv();
-        }
+        var n = document.getElementById('cn_n').value, t = document.getElementById('cn_t').value;
+        if(n) { if(idx=="-1") db.cats.push({n:n,t:t}); else db.cats[idx]={n:n,t:t}; sv(); }
     }
 
-    function editC(idx) {
-        var c = db.cats[idx];
-        document.getElementById('edit_cat_idx').value = idx;
-        document.getElementById('cn_n').value = c.n;
-        document.getElementById('cn_t').value = c.t;
-        document.getElementById('cat-head').innerText = "Edit Category";
-        document.getElementById('btn-cat-can').style.display = "block";
-        document.getElementById('btn-cat-save').innerText = "Update Category";
-    }
-
-    function resetCatForm() {
-        document.getElementById('edit_cat_idx').value = "-1";
-        document.getElementById('cn_n').value = "";
-        document.getElementById('cat-head').innerText = "Add Category";
-        document.getElementById('btn-cat-can').style.display = "none";
-        document.getElementById('btn-cat-save').innerText = "Save Category";
-    }
-
-    // Boilerplate
-    function addB() { var n=document.getElementById('bn_n').value; var i=parseFloat(document.getElementById('bn_i').value); if(n&&!isNaN(i)){db.banks.push({n:n,cur:i});sv();}}
+    function addB() { var n=document.getElementById('bn_n').value; var i=parseFloat(document.getElementById('bn_i').value); if(n&&!isNaN(i)){db.banks.push({n:n,cur:i,init:i});sv();}}
     function addR() { var n=document.getElementById('r_n').value; var a=parseFloat(document.getElementById('r_a').value); var b=document.getElementById('r_bk').value; var c=document.getElementById('r_ct').value; var f=parseInt(document.getElementById('r_f').value); var d=document.getElementById('r_dt').value; if(n&&!isNaN(a)){db.recs.push({n:n,a:a,b:b,c:c,f:f,dt:d});sv();}}
     function sv() { localStorage.setItem(KEY, JSON.stringify(db)); dr(); }
 
-    var filterBk = "";
+    var fK = "";
     function dr() {
         var bH="", bO="", cO="";
         db.banks.forEach(b => {
-            bH += '<button class="bal-card" onclick="filterBk=\''+b.n+'\';dr()">'+b.n+'<br>£'+b.cur.toFixed(2)+'</button>';
+            // Re-calculate bank balance based on history
+            var currentBal = b.init || 0;
+            db.txs.forEach(t => { if(t.b == b.n) currentBal += (t.t == 'inc' ? t.a : -t.a); });
+            b.cur = currentBal;
+
+            bH += '<button class="bal-card" onclick="fK=\''+b.n+'\';dr()">'+b.n+'<br>£'+b.cur.toFixed(2)+'</button>';
             bO += '<option value="'+b.n+'">'+b.n+'</option>';
         });
         db.cats.forEach(c => { cO += '<option value="'+c.n+'">'+c.n+'</option>'; });
@@ -197,28 +174,27 @@
         document.getElementById('tx_bk').innerHTML = bO;
         document.getElementById('r_bk').innerHTML = bO;
         document.getElementById('r_ct').innerHTML = cO;
-        
-        // Fill ALL split category dropdowns
-        document.querySelectorAll('.sp-ct').forEach(sel => {
-            var curVal = sel.value;
-            sel.innerHTML = cO;
-            if(curVal) sel.value = curVal;
-        });
+        document.querySelectorAll('.sp-ct').forEach(sel => { var v=sel.value; sel.innerHTML=cO; if(v)sel.value=v; });
 
-        var rH = "";
-        db.recs.forEach((r, idx) => { rH += '<tr><td>'+r.dt+'</td><td>'+r.n+'</td><td>£'+r.a+'</td><td><button class="btn-sml btn-red" onclick="db.recs.splice('+idx+',1);sv()">Del</button></td></tr>'; });
-        document.getElementById('out-rec').innerHTML = rH;
-
-        document.getElementById('l_title').innerText = filterBk || "Select Account";
+        // Ledger with Running Balance
+        document.getElementById('l_title').innerText = fK || "Select Account";
         var lH = "";
-        db.txs.forEach(t => { if(t.b == filterBk) lH += '<tr><td>'+t.d+'</td><td>'+t.c+'</td><td>£'+t.a.toFixed(2)+'</td></tr>'; });
+        var running = 0;
+        db.banks.forEach(b => { if(b.n == fK) running = b.init || 0; });
+
+        // Sort transactions by date for ledger display
+        var sortedTxs = db.txs.filter(t => t.b == fK).sort((a,b) => new Date(a.dt) - new Date(b.dt));
+
+        sortedTxs.forEach(t => {
+            running += (t.t == 'inc' ? t.a : -t.a);
+            var row = '<tr><td>'+t.dt+'</td><td>'+t.d+'</td><td>'+t.c+'</td>';
+            row += '<td class="'+(t.t=='inc'?'amt-pos':'amt-neg')+'">'+(t.t=='inc'?'+':'-')+'£'+t.a.toFixed(2)+'</td>';
+            row += '<td>£'+running.toFixed(2)+'</td></tr>';
+            lH = row + lH; // Prepend to show newest at top
+        });
         document.getElementById('out-his').innerHTML = lH;
 
-        var cH = "";
-        db.cats.forEach((c, idx) => { cH += '<tr><td>'+c.n+'</td><td>'+c.t+'</td><td><button class="btn-sml" onclick="editC('+idx+')">Edit</button><button class="btn-sml btn-red" onclick="db.cats.splice('+idx+',1);sv()">Del</button></td></tr>'; });
+        // Categories & Recurring
+        var cH = ""; db.cats.forEach((c, i) => { cH += '<tr><td>'+c.n+'</td><td>'+c.t+'</td><td><button class="btn-sml" onclick="document.getElementById(\'edit_cat_idx\').value='+i+';document.getElementById(\'cn_n\').value=\''+c.n+'\';">Edit</button></td></tr>'; });
         document.getElementById('out-cat').innerHTML = cH;
-    }
-    window.onload = dr;
-</script>
-</body>
-</html>
+        var rH = ""; db.recs.forEach((

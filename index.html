@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>FinanceVault: v230 Budget & Import</title>
+    <title>FinanceVault: v235 Reports & Export</title>
     <style>
         body { font-family: sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
         .nav { background: #2c3e50; padding: 10px; display: flex; gap: 5px; position: sticky; top: 0; z-index: 9999; }
@@ -18,8 +18,9 @@
         .split-row { display: flex; gap: 5px; background: #f9f9f9; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 5px; }
         table { width: 100%; border-collapse: collapse; font-size: 12px; }
         td, th { border-bottom: 1px solid #ddd; padding: 8px; text-align: left; }
-        .prog-bg { background: #eee; width: 100%; height: 10px; border-radius: 5px; overflow: hidden; }
-        .prog-fill { background: #3498db; height: 100%; }
+        .rep-header { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; align-items: end; }
+        .print-only { display: none; }
+        @media print { .nav, .rep-header, button { display: none !important; } .print-only { display: block; } .card { box-shadow: none; border: none; } }
     </style>
 </head>
 <body>
@@ -27,15 +28,15 @@
 <div class="nav">
     <button class="n-btn" onclick="goTo('p1')">Dash</button>
     <button class="n-btn" onclick="goTo('p6')">Ledger</button>
+    <button class="n-btn" onclick="goTo('p7')">Reports</button>
     <button class="n-btn" onclick="goTo('p5')">Graph</button>
     <button class="n-btn" onclick="goTo('p2')">Recur</button>
     <button class="n-btn" onclick="goTo('p3')">Admin</button>
-    <button class="n-btn" onclick="goTo('p4')">Setup</button>
 </div>
 
 <div id="p1" class="page" style="display:block;">
     <div class="card">
-        <h3>Jan 2026 Summary</h3>
+        <h3>Monthly Summary</h3>
         <div class="summary-grid" id="out-sum"></div>
     </div>
     <div class="card">
@@ -56,6 +57,31 @@
         </div>
         <button onclick="addSplitRow()" style="width:auto; padding:5px;">+ Add Split</button>
         <button class="btn-grn" onclick="addTx()">Post Transaction</button>
+    </div>
+</div>
+
+<div id="p7" class="page">
+    <div class="card">
+        <h3>Generate Report</h3>
+        <div class="rep-header">
+            <div><label>From:</label><input type="date" id="rep_f"></div>
+            <div><label>To:</label><input type="date" id="rep_t"></div>
+            <div><label>Category:</label><select id="rep_c"><option value="">All Categories</option></select></div>
+            <div><label>Bank:</label><select id="rep_b"><option value="">All Banks</option></select></div>
+        </div>
+        <div style="display:flex; gap:10px; margin-top:10px;">
+            <button class="btn-grn" onclick="runReport()">Generate View</button>
+            <button onclick="window.print()" style="background:#34495e; color:white; border:none; cursor:pointer;">Print to PDF</button>
+            <button onclick="exportCSV()" style="background:#3498db; color:white; border:none; cursor:pointer;">Export CSV</button>
+        </div>
+    </div>
+    <div class="card" id="rep_res_card" style="display:none;">
+        <h2 class="print-only">FinanceVault - Custom Report</h2>
+        <div id="rep_summary" style="margin-bottom:20px; font-weight:bold; font-size:16px;"></div>
+        <table>
+            <thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Bank</th><th>Amount</th></tr></thead>
+            <tbody id="out-report"></tbody>
+        </table>
     </div>
 </div>
 
@@ -91,60 +117,93 @@
 
 <div id="p3" class="page">
     <div class="card">
-        <h3>Budget vs Actual (This Month)</h3>
+        <h3>Budget vs Actual</h3>
         <table>
             <thead><tr><th>Category</th><th>Budget £</th><th>Actual £</th><th>Status</th></tr></thead>
             <tbody id="out-budget"></tbody>
         </table>
     </div>
     <div class="card">
-        <h3>Manage Categories</h3>
-        <div style="display:flex; gap:5px;">
-            <input type="text" id="cn_n" placeholder="Cat Name">
-            <input type="number" id="cn_b" placeholder="Budget £">
-            <select id="cn_t"><option value="exp">Expense</option><option value="inc">Income</option></select>
+        <h3>Settings & Admin</h3>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+            <div>
+                <h4>Banks</h4>
+                <input type="text" id="bn_n" placeholder="Bank Name"><input type="number" id="bn_i" placeholder="Opening Bal">
+                <button class="btn-grn" onclick="addB()">Add Bank</button>
+                <div id="out-bk-list"></div>
+            </div>
+            <div>
+                <h4>Categories</h4>
+                <input type="text" id="cn_n" placeholder="Name">
+                <input type="number" id="cn_b" placeholder="Budget £">
+                <select id="cn_t"><option value="exp">Expense</option><option value="inc">Income</option></select>
+                <button class="btn-grn" onclick="addC()">Save Category</button>
+            </div>
         </div>
-        <button class="btn-grn" onclick="addC()">Save Category</button>
-    </div>
-    <div class="card">
-        <h3>Bank Accounts</h3>
-        <input type="text" id="bn_n" placeholder="Bank Name"><input type="number" id="bn_i" placeholder="Opening Bal">
-        <button class="btn-grn" onclick="addB()">Add Bank</button>
-        <div id="out-bk-list"></div>
-    </div>
-</div>
-
-<div id="p4" class="page">
-    <div class="card">
-        <h3>Bulk CSV Import</h3>
-        <p style="font-size:11px; color:#666;">Format: Date, Description, Category, Bank, Amount (One per line)</p>
-        <textarea id="csv_box" rows="5" placeholder="2026-01-10, Grocery, Food, Lloyds, 50.00"></textarea>
-        <button class="btn-grn" onclick="importCSV()">Run Import</button>
     </div>
     <div class="card">
         <label>Minimum Goal £</label>
         <input type="number" id="set_goal" onchange="db.goal=parseFloat(this.value);sv()">
-        <button onclick="localStorage.clear();location.reload();" style="color:red; margin-top:20px;">Wipe All Data</button>
+        <button onclick="localStorage.clear();location.reload();" style="color:red; margin-top:20px; width:auto; padding:5px; border:1px solid red; background:none; cursor:pointer;">Wipe All Data</button>
     </div>
 </div>
 
 <script>
-    var KEY = 'FV_V230_FINAL';
+    var KEY = 'FV_V235_REPORT';
     var db = { banks: [], cats: [], recs: [], txs: [], goal: 0 };
     var activeBank = "";
+    var filteredData = []; // To store current report state
 
     try { var s = localStorage.getItem(KEY); if(s) db = JSON.parse(s); } catch(e) {}
 
     function goTo(id) {
-        ['p1','p2','p3','p4','p5','p6'].forEach(function(p){ document.getElementById(p).style.display='none'; });
+        ['p1','p2','p3','p5','p6','p7'].forEach(function(p){ document.getElementById(p).style.display='none'; });
         document.getElementById(id).style.display='block';
         if(id === 'p1') drDash();
         if(id === 'p3') drAdmin();
         if(id === 'p5') render60Day();
         if(id === 'p6') drLedger();
         if(id === 'p2') drRecur();
+        if(id === 'p7') updateDropdowns();
     }
 
+    // Reporting Engine
+    function runReport() {
+        var from = document.getElementById('rep_f').value;
+        var to = document.getElementById('rep_t').value;
+        var cat = document.getElementById('rep_c').value;
+        var bank = document.getElementById('rep_b').value;
+        
+        filteredData = db.txs.filter(function(t) {
+            var dateMatch = (!from || t.dt >= from) && (!to || t.dt <= to);
+            var catMatch = (!cat || t.c === cat);
+            var bankMatch = (!bank || t.b === bank);
+            return dateMatch && catMatch && bankMatch;
+        });
+
+        var h = "", total = 0;
+        filteredData.forEach(function(t) {
+            h += '<tr><td>'+t.dt+'</td><td>'+t.d+'</td><td>'+t.c+'</td><td>'+t.b+'</td><td>£'+t.a.toFixed(2)+'</td></tr>';
+            total += (t.t === 'inc' ? t.a : -t.a);
+        });
+
+        document.getElementById('out-report').innerHTML = h;
+        document.getElementById('rep_summary').innerHTML = "Results: " + filteredData.length + " transactions | Net Total: £" + total.toFixed(2);
+        document.getElementById('rep_res_card').style.display = 'block';
+    }
+
+    function exportCSV() {
+        if(filteredData.length === 0) return alert("Run report first");
+        var csv = "Date,Description,Category,Bank,Amount\n";
+        filteredData.forEach(function(t) { csv += t.dt + "," + t.d + "," + t.c + "," + t.b + "," + t.a + "\n"; });
+        var blob = new Blob([csv], {type: 'text/csv'});
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'FinanceVault_Report.csv';
+        a.click();
+    }
+
+    // Core Logic
     function addSplitRow() {
         var d = document.createElement('div'); d.className = 'split-row';
         d.innerHTML = '<input type="text" class="sp-ds" placeholder="Item" style="flex:2"><input type="number" class="sp-am" placeholder="£" style="flex:1"><select class="sp-ct" style="flex:1"></select>';
@@ -162,18 +221,6 @@
             }
         });
         sv(); drDash();
-    }
-
-    function importCSV() {
-        var lines = document.getElementById('csv_box').value.split('\n');
-        lines.forEach(function(l){
-            var p = l.split(',');
-            if(p.length >= 5) {
-                var ty = 'exp'; db.cats.forEach(function(c){ if(c.n === p[2].trim()) ty = c.t; });
-                db.txs.push({dt:p[0].trim(), d:p[1].trim(), c:p[2].trim(), b:p[3].trim(), a:parseFloat(p[4]), t:ty});
-            }
-        });
-        sv(); alert("Imported!");
     }
 
     function addC() { db.cats.push({n:document.getElementById('cn_n').value, b:parseFloat(document.getElementById('cn_b').value)||0, t:document.getElementById('cn_t').value}); sv(); drAdmin(); }
@@ -203,15 +250,19 @@
         db.cats.forEach(function(c, i){
             var act = 0; db.txs.forEach(function(t){ var td=new Date(t.dt); if(t.c===c.n && td.getMonth()===m && td.getFullYear()===y) act+=t.a; });
             var perc = Math.min((act/c.b)*100, 100) || 0;
-            bdH += '<tr><td>'+c.n+'</td><td>£'+c.b+'</td><td>£'+act.toFixed(2)+'</td><td><div class="prog-bg"><div class="prog-fill" style="width:'+perc+'%; background:'+(act>c.b?'#e74c3c':'#27ae60')+'"></div></div></td></tr>';
+            bdH += '<tr><td>'+c.n+'</td><td>£'+c.b+'</td><td>£'+act.toFixed(2)+'</td><td><div style="background:#eee; height:8px;"><div style="background:'+(act>c.b?'#e74c3c':'#27ae60')+'; height:100%; width:'+perc+'%"></div></div></td></tr>';
         });
         document.getElementById('out-bk-list').innerHTML=bL; document.getElementById('out-budget').innerHTML=bdH;
         document.getElementById('set_goal').value = db.goal;
     }
 
     function updateDropdowns() {
-        var cO=""; db.cats.forEach(function(c){ cO+='<option value="'+c.n+'">'+c.n+'</option>'; });
+        var cO="", bO=""; 
+        db.cats.forEach(function(c){ cO+='<option value="'+c.n+'">'+c.n+'</option>'; });
+        db.banks.forEach(function(b){ bO+='<option value="'+b.n+'">'+b.n+'</option>'; });
         document.querySelectorAll('.sp-ct').forEach(function(s){ var v=s.value; s.innerHTML=cO; s.value=v; });
+        document.getElementById('rep_c').innerHTML = '<option value="">All Categories</option>' + cO;
+        document.getElementById('rep_b').innerHTML = '<option value="">All Banks</option>' + bO;
     }
 
     function drLedger() {

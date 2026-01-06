@@ -2,58 +2,51 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>FinanceVault: v180 Cash Flow</title>
+    <title>FinanceVault: v185 Isolated 60-Day</title>
     <style>
         body { font-family: sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
-        .nav { background: #2c3e50; padding: 10px; display: flex; gap: 5px; }
+        .nav { background: #2c3e50; padding: 10px; display: flex; gap: 5px; position: sticky; top: 0; z-index: 100; }
         .n-btn { color: white; background: #34495e; border: none; padding: 12px; border-radius: 4px; cursor: pointer; font-weight: bold; flex: 1; }
         .page { display: none; padding: 20px; }
         .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; max-width: 800px; margin-left: auto; margin-right: auto; }
         .bal-card { background: #3498db; color: white; padding: 12px; border-radius: 6px; display: inline-block; margin: 5px; font-weight: bold; min-width: 120px; text-align: center; border: none; cursor: pointer; }
         input, select, button { width: 100%; padding: 10px; margin: 5px 0; box-sizing: border-box; }
         .btn-grn { background: #27ae60; color: white; border: none; font-weight: bold; cursor: pointer; }
-        .btn-red { background: #e74c3c; color: white; border: none; cursor: pointer; }
-        canvas { background: #fff; border: 1px solid #ddd; width: 100%; height: 200px; border-radius: 4px; }
-        table { width: 100%; border-collapse: collapse; }
-        td, th { border-bottom: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; }
+        canvas { background: #fff; border: 1px solid #ddd; width: 100%; height: 250px; border-radius: 4px; display: block; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        td, th { border-bottom: 1px solid #ddd; padding: 8px; text-align: left; }
     </style>
 </head>
 <body>
 
 <div class="nav">
-    <button class="n-btn" onclick="sh('p1')">Dash</button>
-    <button class="n-btn" onclick="sh('p5')">Graph</button>
-    <button class="n-btn" onclick="sh('p2')">Recur</button>
-    <button class="n-btn" onclick="sh('p3')">Cats</button>
+    <button class="n-btn" onclick="goTo('p1')">Dash</button>
+    <button class="n-btn" onclick="goTo('p5')">60-Day Graph</button>
+    <button class="n-btn" onclick="goTo('p2')">Recur</button>
+    <button class="n-btn" onclick="goTo('p3')">Cats</button>
 </div>
 
 <div id="p1" class="page" style="display:block;">
     <div class="card">
-        <h3>Balances</h3>
+        <h3>Balances (Click to select for Graph)</h3>
         <div id="out-bal"></div>
     </div>
     <div class="card">
         <h3>Post Transaction</h3>
         <input type="date" id="tx_dt">
-        <input type="text" id="tx_main_ds" placeholder="Desc">
+        <input type="text" id="tx_ds" placeholder="Description">
         <select id="tx_bk"></select>
-        <div id="split-area">
-            <div style="display:flex; gap:5px; margin-bottom:5px;">
-                <input type="text" class="sp-ds" placeholder="Item" style="flex:2">
-                <input type="number" class="sp-am" placeholder="£" style="flex:1">
-                <select class="sp-ct" style="flex:1"></select>
-            </div>
-        </div>
-        <button class="btn-grn" onclick="addTx()">Post Total</button>
+        <select id="tx_ct"></select>
+        <input type="number" id="tx_am" placeholder="£ Amount">
+        <button class="btn-grn" onclick="addTx()">Post Transaction</button>
     </div>
 </div>
 
 <div id="p5" class="page">
     <div class="card">
-        <h3>30-Day Cash Flow Projection</h3>
-        <p style="font-size:12px; color:#666;">Shows current balance + upcoming recurring items for the selected account.</p>
-        <canvas id="cfGraph"></canvas>
-        <div id="graph-legend" style="margin-top:10px; font-weight:bold;">Select an account on the Dashboard to view graph.</div>
+        <h3 id="g-title">Cash Flow (Select account on Dash)</h3>
+        <canvas id="cfGraph" width="800" height="250"></canvas>
+        <div id="g-leg" style="margin-top:10px; font-weight:bold; color: #2c3e50;"></div>
     </div>
 </div>
 
@@ -64,7 +57,6 @@
         <input type="number" id="r_a" placeholder="£">
         <select id="r_bk"></select>
         <select id="r_ct"></select>
-        <input type="number" id="r_f" placeholder="Freq (Days)">
         <input type="date" id="r_dt">
         <button class="btn-grn" onclick="addR()">Save Recurring</button>
     </div>
@@ -88,85 +80,121 @@
 </div>
 
 <script>
-    var KEY = 'FV_V180_GRAPH';
+    var KEY = 'FV_V185_FINAL';
     var db = { banks: [], cats: [], recs: [], txs: [] };
+    var activeBank = "";
+
     var saved = localStorage.getItem(KEY);
     if(saved) { db = JSON.parse(saved); }
 
-    var activeBank = "";
-
-    function sh(id) {
-        ['p1','p2','p3','p5'].forEach(p => document.getElementById(p).style.display='none');
-        document.getElementById(id).style.display='block';
-        if(id === 'p5') renderGraph();
-        dr();
+    // STABLE NAVIGATION
+    function goTo(id) {
+        var pages = document.getElementsByClassName('page');
+        for(var i=0; i<pages.length; i++) { pages[i].style.display = 'none'; }
+        document.getElementById(id).style.display = 'block';
+        
+        if(id === 'p5') { render60Day(); }
+        else { refreshUI(); }
     }
 
-    function addTx() {
-        var m = document.getElementById('tx_main_ds').value;
-        var b = document.getElementById('tx_bk').value;
-        var d = document.getElementById('tx_dt').value;
-        var row = document.querySelector('.split-row') || document.querySelector('#split-area div');
-        var am = parseFloat(row.querySelector('.sp-am').value);
-        var ct = row.querySelector('.sp-ct').value;
-        if(!isNaN(am)) {
-            var ty = 'exp';
-            db.cats.forEach(c => { if(c.n == ct) ty = c.t; });
-            db.txs.push({dt:d, d:m, a:am, b:b, c:ct, t:ty});
-            sv();
+    function render60Day() {
+        if(!activeBank) { 
+            document.getElementById('g-title').innerText = "Please select a bank on the Dashboard first.";
+            return; 
         }
-    }
-
-    function renderGraph() {
-        if(!activeBank) return;
+        document.getElementById('g-title').innerText = "60-Day Projection for " + activeBank;
+        
         var canvas = document.getElementById('cfGraph');
         var ctx = canvas.getContext('2d');
         ctx.clearRect(0,0,canvas.width, canvas.height);
 
-        // 1. Calculate Current Balance
+        // Calculate Current Balance
         var bObj = db.banks.find(b => b.n === activeBank);
-        var bal = bObj ? bObj.init : 0;
-        db.txs.forEach(t => { if(t.b === activeBank) bal += (t.t === 'inc' ? t.a : -t.a); });
+        var currentBal = bObj ? bObj.init : 0;
+        db.txs.forEach(t => { if(t.b === activeBank) currentBal += (t.t === 'inc' ? t.a : -t.a); });
 
-        // 2. Project 30 Days
         var points = [];
+        var tempBal = currentBal;
         var today = new Date();
-        for(var i=0; i<=30; i++) {
+
+        for(var i=0; i<=60; i++) {
             var d = new Date(); d.setDate(today.getDate() + i);
             var dStr = d.toISOString().split('T')[0];
             
             db.recs.forEach(r => {
                 if(r.b === activeBank && r.dt === dStr) {
-                    var ty = 'exp';
-                    db.cats.forEach(c => { if(c.n === r.c) ty = c.t; });
-                    bal += (ty === 'inc' ? r.a : -r.a);
+                    var type = 'exp';
+                    db.cats.forEach(c => { if(c.n === r.c) type = c.t; });
+                    tempBal += (type === 'inc' ? r.a : -r.a);
                 }
             });
-            points.push(bal);
+            points.push(tempBal);
         }
 
-        // 3. Draw
-        var max = Math.max(...points), min = Math.min(...points);
-        var range = max - min || 100;
+        // Draw Logic
+        var max = Math.max(...points, 1), min = Math.min(...points, 0);
+        var range = (max - min) || 100;
+        
         ctx.beginPath();
         ctx.strokeStyle = '#3498db';
-        ctx.lineWidth = 3;
+        ctx.lineWidth = 4;
         points.forEach((p, i) => {
-            var x = (i / 30) * canvas.width;
-            var y = canvas.height - ((p - min) / range) * canvas.height;
-            if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+            var x = (i / 60) * canvas.width;
+            var y = canvas.height - ((p - min) / range) * (canvas.height - 40) - 20;
+            if(i === 0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
         });
         ctx.stroke();
-        document.getElementById('graph-legend').innerText = activeBank + " Projection: £" + points[0].toFixed(2) + " to £" + points[30].toFixed(2);
+        
+        document.getElementById('g-leg').innerText = "Start: £" + points[0].toFixed(2) + " | End (60 days): £" + points[60].toFixed(2);
     }
 
-    function addB() { var n=document.getElementById('bn_n').value; var i=parseFloat(document.getElementById('bn_i').value); if(n&&!isNaN(i)){db.banks.push({n:n,init:i});sv();}}
-    function addC() { var n=document.getElementById('cn_n').value, t=document.getElementById('cn_t').value; if(n){db.cats.push({n:n,t:t});sv();}}
-    function addR() { var n=document.getElementById('r_n').value, a=parseFloat(document.getElementById('r_a').value), b=document.getElementById('r_bk').value, c=document.getElementById('r_ct').value, d=document.getElementById('r_dt').value; if(n){db.recs.push({n:n,a:a,b:b,c:c,dt:d});sv();}}
-    function sv() { localStorage.setItem(KEY, JSON.stringify(db)); dr(); }
+    function addTx() {
+        var d = document.getElementById('tx_dt').value;
+        var s = document.getElementById('tx_ds').value;
+        var b = document.getElementById('tx_bk').value;
+        var c = document.getElementById('tx_ct').value;
+        var a = parseFloat(document.getElementById('tx_am').value);
+        if(!isNaN(a)) {
+            var ty = 'exp';
+            db.cats.forEach(cat => { if(cat.n === c) ty = cat.t; });
+            db.txs.push({dt:d, d:s, b:b, c:c, a:a, t:ty});
+            saveAndRefresh();
+        }
+    }
 
-    function dr() {
+    function addB() { var n=document.getElementById('bn_n').value, i=parseFloat(document.getElementById('bn_i').value); if(n) { db.banks.push({n:n,init:i}); saveAndRefresh(); }}
+    function addC() { var n=document.getElementById('cn_n').value, t=document.getElementById('cn_t').value; if(n) { db.cats.push({n:n,t:t}); saveAndRefresh(); }}
+    function addR() { var n=document.getElementById('r_n').value, a=parseFloat(document.getElementById('r_a').value), b=document.getElementById('r_bk').value, c=document.getElementById('r_ct').value, d=document.getElementById('r_dt').value; if(n) { db.recs.push({n:n,a:a,b:b,c:c,dt:d}); saveAndRefresh(); }}
+    
+    function saveAndRefresh() { localStorage.setItem(KEY, JSON.stringify(db)); refreshUI(); }
+
+    function refreshUI() {
         var bH="", bO="", cO="";
         db.banks.forEach(b => {
-            var total = b.init;
-            db
+            var bal = b.init;
+            db.txs.forEach(t => { if(t.b === b.n) bal += (t.t === 'inc' ? t.a : -t.a); });
+            var style = (activeBank === b.n) ? 'border: 3px solid #2c3e50;' : '';
+            bH += '<button class="bal-card" style="'+style+'" onclick="activeBank=\''+b.n+'\';refreshUI()">'+b.n+'<br>£'+bal.toFixed(2)+'</button>';
+            bO += '<option value="'+b.n+'">'+b.n+'</option>';
+        });
+        db.cats.forEach(c => { cO += '<option value="'+c.n+'">'+c.n+'</option>'; });
+
+        document.getElementById('out-bal').innerHTML = bH;
+        document.getElementById('tx_bk').innerHTML = bO;
+        document.getElementById('r_bk').innerHTML = bO;
+        document.getElementById('tx_ct').innerHTML = cO;
+        document.getElementById('r_ct').innerHTML = cO;
+        
+        var rH = ""; db.recs.forEach(r => { rH += '<tr><td>'+r.dt+'</td><td>'+r.n+'</td><td>£'+r.a+'</td></tr>'; });
+        document.getElementById('out-rec').innerHTML = rH;
+        var cH = ""; db.cats.forEach(c => { cH += '<tr><td>'+c.n+'</td><td>'+c.t+'</td></tr>'; });
+        document.getElementById('out-cat').innerHTML = cH;
+    }
+
+    window.onload = function() {
+        document.getElementById('tx_dt').valueAsDate = new Date();
+        refreshUI();
+    };
+</script>
+</body>
+</html>

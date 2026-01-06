@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>FinanceVault: v220 Final Stability</title>
+    <title>FinanceVault: v225 Monthly Summary</title>
     <style>
         body { font-family: sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
         .nav { background: #2c3e50; padding: 10px; display: flex; gap: 5px; position: sticky; top: 0; z-index: 9999; }
@@ -10,6 +10,8 @@
         .page { display: none; padding: 20px; }
         .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; max-width: 850px; margin-left: auto; margin-right: auto; }
         .bal-card { background: #3498db; color: white; padding: 12px; border-radius: 6px; display: inline-block; margin: 5px; font-weight: bold; min-width: 120px; text-align: center; border: 2px solid transparent; cursor: pointer; }
+        .summary-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 10px; }
+        .sum-box { padding: 10px; border-radius: 4px; text-align: center; color: white; font-weight: bold; }
         input, select, button { width: 100%; padding: 10px; margin: 5px 0; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
         .btn-grn { background: #27ae60; color: white; border: none; font-weight: bold; cursor: pointer; }
         .btn-red { background: #e74c3c; color: white; border: none; cursor: pointer; width: auto; padding: 4px 8px; font-size: 11px; }
@@ -31,13 +33,17 @@
 
 <div id="p1" class="page" style="display:block;">
     <div class="card">
+        <h3>Monthly Summary (Jan 2026)</h3>
+        <div class="summary-grid" id="out-sum"></div>
+    </div>
+    <div class="card">
         <h3>Balances</h3>
         <div id="out-bal"></div>
     </div>
     <div class="card">
         <h3>Post Transaction</h3>
         <input type="date" id="tx_dt">
-        <input type="text" id="tx_main_ds" placeholder="Store Name">
+        <input type="text" id="tx_main_ds" placeholder="Store/Merchant">
         <select id="tx_bk"></select>
         <div id="split-area">
             <div class="split-row">
@@ -102,25 +108,19 @@
 </div>
 
 <script>
-    var KEY = 'FV_V220_STABLE';
+    var KEY = 'FV_V225_SUM';
     var db = { banks: [], cats: [], recs: [], txs: [], goal: 0 };
     var activeBank = "";
 
-    // Load Data
     try {
         var s = localStorage.getItem(KEY);
         if(s) db = JSON.parse(s);
     } catch(e) {}
 
-    // 1. STABLE NAVIGATION (Independent of Logic)
     function goTo(id) {
         var pids = ['p1','p2','p3','p5','p6'];
-        for(var i=0; i<pids.length; i++) {
-            document.getElementById(pids[i]).style.display = 'none';
-        }
+        for(var i=0; i<pids.length; i++) { document.getElementById(pids[i]).style.display = 'none'; }
         document.getElementById(id).style.display = 'block';
-        
-        // Trigger specific draws only when needed
         if(id === 'p1') drDash();
         if(id === 'p2') drRecur();
         if(id === 'p3') drAdmin();
@@ -128,7 +128,6 @@
         if(id === 'p6') drLedger();
     }
 
-    // 2. DATA ACTIONS
     function addSplitRow() {
         var d = document.createElement('div'); d.className = 'split-row';
         d.innerHTML = '<input type="text" class="sp-ds" placeholder="Item" style="flex:2"><input type="number" class="sp-am" placeholder="£" style="flex:1"><select class="sp-ct" style="flex:1"></select>';
@@ -140,36 +139,39 @@
         var m = document.getElementById('tx_main_ds').value, b = document.getElementById('tx_bk').value, dt = document.getElementById('tx_dt').value;
         var rows = document.querySelectorAll('.split-row');
         for(var i=0; i<rows.length; i++) {
-            var ds = rows[i].querySelector('.sp-ds').value || m;
-            var am = parseFloat(rows[i].querySelector('.sp-am').value);
-            var ct = rows[i].querySelector('.sp-ct').value;
+            var ds = rows[i].querySelector('.sp-ds').value || m, am = parseFloat(rows[i].querySelector('.sp-am').value), ct = rows[i].querySelector('.sp-ct').value;
             if(!isNaN(am)) {
                 var ty = 'exp';
                 for(var j=0; j<db.cats.length; j++) { if(db.cats[j].n === ct) ty = db.cats[j].t; }
                 db.txs.push({dt:dt, d:ds, a:am, b:b, c:ct, t:ty});
             }
         }
-        sv(); goTo('p1');
+        sv(); drDash();
     }
 
-    function addB() { db.banks.push({n:document.getElementById('bn_n').value, init:parseFloat(document.getElementById('bn_i').value)||0}); sv(); }
-    function addC() { db.cats.push({n:document.getElementById('cn_n').value, t:document.getElementById('cn_t').value}); sv(); }
-    function addR() { db.recs.push({n:document.getElementById('r_n').value, a:parseFloat(document.getElementById('r_a').value), b:document.getElementById('r_bk').value, c:document.getElementById('r_ct').value, dt:document.getElementById('r_dt').value}); sv(); }
-    
+    function addB() { db.banks.push({n:document.getElementById('bn_n').value, init:parseFloat(document.getElementById('bn_i').value)||0}); sv(); drAdmin(); }
+    function addC() { db.cats.push({n:document.getElementById('cn_n').value, t:document.getElementById('cn_t').value}); sv(); drAdmin(); }
+    function addR() { db.recs.push({n:document.getElementById('r_n').value, a:parseFloat(document.getElementById('r_a').value), b:document.getElementById('r_bk').value, c:document.getElementById('r_ct').value, dt:document.getElementById('r_dt').value}); sv(); drRecur(); }
     function sv() { localStorage.setItem(KEY, JSON.stringify(db)); }
 
-    // 3. DRAWING LOGIC (Isolated)
     function drDash() {
-        var h = "", opts = "";
+        var h = "", opts = "", inc = 0, exp = 0, now = new Date(), m = now.getMonth(), y = now.getFullYear();
         db.banks.forEach(function(b) {
             var bal = b.init;
-            db.txs.forEach(function(t){ if(t.b === b.n) bal += (t.t==='inc'?t.a:-t.a); });
+            db.txs.forEach(function(t){ 
+                if(t.b === b.n) bal += (t.t==='inc'?t.a:-t.a); 
+                var td = new Date(t.dt);
+                if(td.getMonth() === m && td.getFullYear() === y) {
+                    if(t.t === 'inc') inc += t.a; else exp += t.a;
+                }
+            });
             var s = (activeBank === b.n) ? 'border-color:#2c3e50' : '';
             h += '<button class="bal-card" style="'+s+'" onclick="activeBank=\''+b.n+'\';drDash()">'+b.n+'<br>£'+bal.toFixed(2)+'</button>';
             opts += '<option value="'+b.n+'">'+b.n+'</option>';
         });
         document.getElementById('out-bal').innerHTML = h;
         document.getElementById('tx_bk').innerHTML = opts;
+        document.getElementById('out-sum').innerHTML = '<div class="sum-box" style="background:#27ae60">Income<br>£'+inc.toFixed(2)+'</div><div class="sum-box" style="background:#e74c3c">Spent<br>£'+exp.toFixed(2)+'</div><div class="sum-box" style="background:#3498db">Net<br>£'+(inc-exp).toFixed(2)+'</div>';
         updateDropdowns();
     }
 

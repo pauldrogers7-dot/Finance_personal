@@ -2,19 +2,18 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>FinanceVault: v200 Stable</title>
+    <title>FinanceVault: v205 Fail-Safe</title>
     <style>
         body { font-family: sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
-        .nav { background: #2c3e50; padding: 10px; display: flex; gap: 5px; position: sticky; top: 0; z-index: 1000; }
-        .n-btn { color: white; background: #34495e; border: none; padding: 12px; border-radius: 4px; cursor: pointer; font-weight: bold; flex: 1; }
-        .n-btn:hover { background: #456789; }
+        .nav { background: #2c3e50; padding: 10px; display: flex; gap: 5px; position: sticky; top: 0; z-index: 9999; }
+        .n-btn { color: white; background: #34495e; border: none; padding: 12px; border-radius: 4px; cursor: pointer; font-weight: bold; flex: 1; text-align: center; }
         .page { display: none; padding: 20px; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; max-width: 850px; margin-left: auto; margin-right: auto; }
-        .bal-card { background: #3498db; color: white; padding: 12px; border-radius: 6px; display: inline-block; margin: 5px; font-weight: bold; min-width: 130px; text-align: center; border: none; cursor: pointer; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; max-width: 800px; margin-left: auto; margin-right: auto; }
+        .bal-card { background: #3498db; color: white; padding: 12px; border-radius: 6px; display: inline-block; margin: 5px; font-weight: bold; min-width: 120px; text-align: center; border: none; cursor: pointer; }
         input, select, button { width: 100%; padding: 10px; margin: 5px 0; box-sizing: border-box; }
         .btn-grn { background: #27ae60; color: white; border: none; font-weight: bold; cursor: pointer; }
         .alert-box { background: #e74c3c; color: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; display: none; font-weight: bold; text-align: center; }
-        canvas { background: #fff; border: 1px solid #ddd; width: 100%; height: 300px; border-radius: 4px; display: block; }
+        canvas { background: #fff; border: 1px solid #ddd; width: 100%; height: 250px; border-radius: 4px; display: block; }
         table { width: 100%; border-collapse: collapse; font-size: 12px; }
         td, th { border-bottom: 1px solid #ddd; padding: 8px; text-align: left; }
     </style>
@@ -23,60 +22,60 @@
 
 <div class="nav">
     <button class="n-btn" onclick="goTo('p1')">Dash</button>
-    <button class="n-btn" onclick="goTo('p5')">Projection</button>
+    <button class="n-btn" onclick="goTo('p5')">Graph</button>
     <button class="n-btn" onclick="goTo('p2')">Recur</button>
     <button class="n-btn" onclick="goTo('p3')">Cats</button>
-    <button class="n-btn" onclick="goTo('p4')">Settings</button>
+    <button class="n-btn" onclick="goTo('p4')">Setup</button>
 </div>
 
 <div id="p1" class="page" style="display:block;">
     <div class="card">
-        <h3>Balances (Select bank for Graph)</h3>
+        <h3>Balances</h3>
         <div id="out-bal"></div>
     </div>
     <div class="card">
         <h3>New Transaction</h3>
         <input type="date" id="tx_dt">
         <input type="text" id="tx_ds" placeholder="Description">
-        <select id="tx_bk"></select>
-        <select id="tx_ct"></select>
+        <select id="tx_bk"><option value="">Select Bank...</option></select>
+        <select id="tx_ct"><option value="">Select Category...</option></select>
         <input type="number" id="tx_am" placeholder="£ Amount">
         <button class="btn-grn" onclick="addTx()">Post Transaction</button>
     </div>
 </div>
 
 <div id="p5" class="page">
-    <div id="danger-alert" class="alert-box">⚠️ WARNING: Projected to drop below goal!</div>
+    <div id="danger-alert" class="alert-box">⚠️ WARNING: Below Goal Line</div>
     <div class="card">
-        <h3 id="g-title">60-Day Cash Flow</h3>
-        <canvas id="cfGraph" width="1000" height="350"></canvas>
-        <div id="g-leg" style="margin-top:15px; padding:10px; background:#f8f9fa;"></div>
+        <h3 id="g-title">60-Day Forecast</h3>
+        <canvas id="cfGraph" width="800" height="250"></canvas>
+        <div id="g-leg" style="margin-top:10px; font-weight:bold;"></div>
     </div>
 </div>
 
 <div id="p2" class="page">
     <div class="card">
-        <h3>Add Recurring</h3>
+        <h3>New Recurring Template</h3>
         <input type="text" id="r_n" placeholder="Name">
-        <input type="number" id="r_a" placeholder="Amount £">
+        <input type="number" id="r_a" placeholder="£">
         <select id="r_bk"></select>
         <select id="r_ct"></select>
         <input type="date" id="r_dt">
-        <button class="btn-grn" onclick="addR()">Save Recurring</button>
+        <button class="btn-grn" onclick="addR()">Save Template</button>
     </div>
     <div class="card"><table><tbody id="out-rec"></tbody></table></div>
 </div>
 
 <div id="p3" class="page">
     <div class="card">
-        <h3>Bank Accounts</h3>
+        <h3>Add Bank</h3>
         <input type="text" id="bn_n" placeholder="Bank Name">
         <input type="number" id="bn_i" placeholder="Opening £">
         <button class="btn-grn" onclick="addB()">Add Bank</button>
     </div>
     <div class="card">
         <h3>Categories</h3>
-        <input type="text" id="cn_n" placeholder="Category Name">
+        <input type="text" id="cn_n" placeholder="Name">
         <select id="cn_t"><option value="exp">Expense</option><option value="inc">Income</option></select>
         <button class="btn-grn" onclick="addC()">Add Category</button>
     </div>
@@ -85,105 +84,117 @@
 
 <div id="p4" class="page">
     <div class="card">
-        <h3>Settings</h3>
+        <h3>Account & PIN Settings</h3>
         <label>Minimum Balance Goal (£)</label>
-        <input type="number" id="set_goal">
+        <input type="number" id="set_goal" placeholder="0">
         <button class="btn-grn" onclick="saveGoal()">Update Goal</button>
     </div>
     <div class="card">
-        <button onclick="if(confirm('Wipe data?')){localStorage.clear();location.reload();}" style="color:red; border:1px solid red; background:none; padding:10px; cursor:pointer;">RESET SYSTEM</button>
+        <button onclick="localStorage.clear();location.reload();" style="color:red; background:none; border:1px solid red; cursor:pointer; padding:5px;">Clear All Data</button>
     </div>
 </div>
 
 <script>
-    var KEY = 'FV_V200_STABLE';
+    var KEY = 'FV_V205_FAILSAFE';
     var db = { banks: [], cats: [], recs: [], txs: [], goal: 0 };
     var activeBank = "";
 
-    var saved = localStorage.getItem(KEY);
-    if(saved) { db = JSON.parse(saved); }
+    try {
+        var saved = localStorage.getItem(KEY);
+        if(saved) { db = JSON.parse(saved); }
+    } catch(e) { console.log("Init Error"); }
 
     function goTo(id) {
-        // 1. Hide all pages
-        var pages = ['p1', 'p2', 'p3', 'p4', 'p5'];
-        pages.forEach(p => document.getElementById(p).style.display = 'none');
-        
-        // 2. Show requested page
-        document.getElementById(id).style.display = 'block';
-        
-        // 3. Trigger specific logic ONLY for that page
-        if(id === 'p5') render60Day();
-        else renderUI();
+        try {
+            var pages = ['p1', 'p2', 'p3', 'p4', 'p5'];
+            pages.forEach(function(p) { document.getElementById(p).style.display = 'none'; });
+            document.getElementById(id).style.display = 'block';
+            if(id === 'p5') render60Day();
+            else dr();
+        } catch(e) { alert("Navigation Error: " + e.message); }
     }
 
     function render60Day() {
-        if(!activeBank) { document.getElementById('g-title').innerText = "Please select a bank on the Dashboard first."; return; }
-        
-        var canvas = document.getElementById('cfGraph');
-        var ctx = canvas.getContext('2d');
-        ctx.clearRect(0,0,canvas.width, canvas.height);
+        try {
+            var canvas = document.getElementById('cfGraph');
+            var ctx = canvas.getContext('2d');
+            ctx.clearRect(0,0,canvas.width, canvas.height);
+            if(!activeBank) { document.getElementById('g-title').innerText = "Select a bank card on the Dashboard first."; return; }
+            
+            var bObj = db.banks.find(function(b){ return b.n === activeBank; });
+            var bal = bObj ? bObj.init : 0;
+            db.txs.forEach(function(t){ if(t.b === activeBank) bal += (t.t === 'inc' ? t.a : -t.a); });
 
-        var bObj = db.banks.find(b => b.n === activeBank);
-        var bal = bObj ? bObj.init : 0;
-        db.txs.forEach(t => { if(t.b === activeBank) bal += (t.t === 'inc' ? t.a : -t.a); });
+            var points = [];
+            var today = new Date();
+            var isDanger = false;
 
-        var points = [];
-        var isDanger = false;
-        var today = new Date();
-        
-        for(var i=0; i<=60; i++) {
-            var d = new Date(); d.setDate(today.getDate() + i);
-            var dStr = d.toISOString().split('T')[0];
-            db.recs.forEach(r => {
-                if(r.b === activeBank && r.dt === dStr) {
-                    var ty = 'exp';
-                    db.cats.forEach(c => { if(c.n === r.c) ty = c.t; });
-                    bal += (ty === 'inc' ? r.a : -r.a);
-                }
-            });
-            points.push(bal);
-            if(bal < db.goal) isDanger = true;
-        }
+            for(var i=0; i<=60; i++) {
+                var d = new Date(); d.setDate(today.getDate() + i);
+                var dStr = d.toISOString().split('T')[0];
+                db.recs.forEach(function(r){
+                    if(r.b === activeBank && r.dt === dStr) {
+                        var ty = 'exp';
+                        db.cats.forEach(function(c){ if(c.n === r.c) ty = c.t; });
+                        bal += (ty === 'inc' ? r.a : -r.a);
+                    }
+                });
+                points.push(bal);
+                if(bal < db.goal) isDanger = true;
+            }
 
-        document.getElementById('danger-alert').style.display = isDanger ? 'block' : 'none';
-        var max = Math.max(...points, db.goal + 100), min = Math.min(...points, db.goal - 100);
-        var range = max - min;
-        function getY(v) { return canvas.height - ((v - min) / range) * (canvas.height - 60) - 30; }
+            document.getElementById('danger-alert').style.display = isDanger ? 'block' : 'none';
+            var max = Math.max.apply(Math, points.concat([db.goal + 100]));
+            var min = Math.min.apply(Math, points.concat([db.goal - 100]));
+            var range = max - min;
+            function getY(v) { return canvas.height - ((v - min) / range) * (canvas.height - 40) - 20; }
 
-        ctx.beginPath(); ctx.setLineDash([5, 5]); ctx.strokeStyle = '#e74c3c';
-        ctx.moveTo(0, getY(db.goal)); ctx.lineTo(canvas.width, getY(db.goal)); ctx.stroke();
-        ctx.setLineDash([]);
-
-        ctx.beginPath(); ctx.strokeStyle = '#3498db'; ctx.lineWidth = 5;
-        points.forEach((p, i) => {
-            var x = (i / 60) * canvas.width;
-            var y = getY(p);
-            if(i === 0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-        });
-        ctx.stroke();
-        document.getElementById('g-leg').innerHTML = "Account: " + activeBank + " | Current Balance: £" + points[0].toFixed(2) + " | 60-Day Forecast: £" + points[60].toFixed(2);
+            ctx.beginPath(); ctx.setLineDash([5, 5]); ctx.strokeStyle = '#e74c3c';
+            ctx.moveTo(0, getY(db.goal)); ctx.lineTo(canvas.width, getY(db.goal)); ctx.stroke();
+            ctx.setLineDash([]); ctx.beginPath(); ctx.strokeStyle = '#3498db'; ctx.lineWidth = 4;
+            points.forEach(function(p, i){ var x = (i/60)*canvas.width; var y = getY(p); if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); });
+            ctx.stroke();
+            document.getElementById('g-leg').innerText = activeBank + " | End of 60 Days: £" + points[60].toFixed(2);
+        } catch(e) { console.log("Graph Error"); }
     }
 
     function addTx() {
         var a = parseFloat(document.getElementById('tx_am').value);
         if(!isNaN(a)) {
             var ty = 'exp';
-            db.cats.forEach(c => { if(c.n === document.getElementById('tx_ct').value) ty = c.t; });
+            db.cats.forEach(function(c){ if(c.n === document.getElementById('tx_ct').value) ty = c.t; });
             db.txs.push({dt:document.getElementById('tx_dt').value, d:document.getElementById('tx_ds').value, b:document.getElementById('tx_bk').value, c:document.getElementById('tx_ct').value, a:a, t:ty});
             sv();
         }
     }
-
     function addB() { db.banks.push({n:document.getElementById('bn_n').value, init:parseFloat(document.getElementById('bn_i').value)}); sv(); }
     function addC() { db.cats.push({n:document.getElementById('cn_n').value, t:document.getElementById('cn_t').value}); sv(); }
     function addR() { db.recs.push({n:document.getElementById('r_n').value, a:parseFloat(document.getElementById('r_a').value), b:document.getElementById('r_bk').value, c:document.getElementById('r_ct').value, dt:document.getElementById('r_dt').value}); sv(); }
-    function saveGoal() { db.goal = parseFloat(document.getElementById('set_goal').value) || 0; sv(); alert("Goal Updated."); }
-    function sv() { localStorage.setItem(KEY, JSON.stringify(db)); renderUI(); }
+    function saveGoal() { db.goal = parseFloat(document.getElementById('set_goal').value) || 0; sv(); }
+    function sv() { localStorage.setItem(KEY, JSON.stringify(db)); dr(); }
 
-    function renderUI() {
-        var bH="", bO="", cO="";
-        db.banks.forEach(b => {
-            var bal = b.init;
-            db.txs.forEach(t => { if(t.b === b.n) bal += (t.t === 'inc' ? t.a : -t.a); });
-            var border = (activeBank === b.n) ? 'border: 4px solid #2c3e50;' : '';
-            bH += '<button class="bal-card" style="'+border+'" onclick
+    function dr() {
+        try {
+            var bH="", bO="", cO="";
+            db.banks.forEach(function(b) {
+                var bal = b.init;
+                db.txs.forEach(function(t){ if(t.b === b.n) bal += (t.t === 'inc' ? t.a : -t.a); });
+                var s = (activeBank === b.n) ? 'border: 4px solid #2c3e50;' : '';
+                bH += '<button class="bal-card" style="'+s+'" onclick="activeBank=\''+b.n+'\';dr()">'+b.n+'<br>£'+bal.toFixed(2)+'</button>';
+                bO += '<option value="'+b.n+'">'+b.n+'</option>';
+            });
+            db.cats.forEach(function(c){ cO += '<option value="'+c.n+'">'+c.n+'</option>'; });
+            document.getElementById('out-bal').innerHTML = bH;
+            document.getElementById('tx_bk').innerHTML = bO; document.getElementById('r_bk').innerHTML = bO;
+            document.getElementById('tx_ct').innerHTML = cO; document.getElementById('r_ct').innerHTML = cO;
+            document.getElementById('set_goal').value = db.goal;
+            var rH = ""; db.recs.forEach(function(r){ rH += '<tr><td>'+r.dt+'</td><td>'+r.n+'</td><td>£'+r.a+'</td></tr>'; });
+            document.getElementById('out-rec').innerHTML = rH;
+            var cH = ""; db.cats.forEach(function(c){ cH += '<tr><td>'+c.n+'</td><td>'+c.t+'</td></tr>'; });
+            document.getElementById('out-cat').innerHTML = cH;
+        } catch(e) { console.log("Draw Error"); }
+    }
+    window.onload = function() { document.getElementById('tx_dt').valueAsDate = new Date(); dr(); };
+</script>
+</body>
+</html>

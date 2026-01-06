@@ -2,23 +2,24 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>FinanceVault: v225 Monthly Summary</title>
+    <title>FinanceVault: v230 Budget & Import</title>
     <style>
         body { font-family: sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
         .nav { background: #2c3e50; padding: 10px; display: flex; gap: 5px; position: sticky; top: 0; z-index: 9999; }
         .n-btn { color: white; background: #34495e; border: none; padding: 12px; border-radius: 4px; cursor: pointer; font-weight: bold; flex: 1; }
         .page { display: none; padding: 20px; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; max-width: 850px; margin-left: auto; margin-right: auto; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; max-width: 900px; margin-left: auto; margin-right: auto; }
         .bal-card { background: #3498db; color: white; padding: 12px; border-radius: 6px; display: inline-block; margin: 5px; font-weight: bold; min-width: 120px; text-align: center; border: 2px solid transparent; cursor: pointer; }
-        .summary-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 10px; }
+        .summary-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
         .sum-box { padding: 10px; border-radius: 4px; text-align: center; color: white; font-weight: bold; }
-        input, select, button { width: 100%; padding: 10px; margin: 5px 0; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        input, select, button, textarea { width: 100%; padding: 10px; margin: 5px 0; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
         .btn-grn { background: #27ae60; color: white; border: none; font-weight: bold; cursor: pointer; }
         .btn-red { background: #e74c3c; color: white; border: none; cursor: pointer; width: auto; padding: 4px 8px; font-size: 11px; }
-        .split-row { display: flex; gap: 5px; background: #f9f9f9; padding: 8px; border-radius: 4px; margin-bottom: 5px; border: 1px solid #ddd; }
+        .split-row { display: flex; gap: 5px; background: #f9f9f9; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 5px; }
         table { width: 100%; border-collapse: collapse; font-size: 12px; }
         td, th { border-bottom: 1px solid #ddd; padding: 8px; text-align: left; }
-        canvas { background: #fff; border: 1px solid #ddd; width: 100%; height: 250px; }
+        .prog-bg { background: #eee; width: 100%; height: 10px; border-radius: 5px; overflow: hidden; }
+        .prog-fill { background: #3498db; height: 100%; }
     </style>
 </head>
 <body>
@@ -29,11 +30,12 @@
     <button class="n-btn" onclick="goTo('p5')">Graph</button>
     <button class="n-btn" onclick="goTo('p2')">Recur</button>
     <button class="n-btn" onclick="goTo('p3')">Admin</button>
+    <button class="n-btn" onclick="goTo('p4')">Setup</button>
 </div>
 
 <div id="p1" class="page" style="display:block;">
     <div class="card">
-        <h3>Monthly Summary (Jan 2026)</h3>
+        <h3>Jan 2026 Summary</h3>
         <div class="summary-grid" id="out-sum"></div>
     </div>
     <div class="card">
@@ -43,7 +45,7 @@
     <div class="card">
         <h3>Post Transaction</h3>
         <input type="date" id="tx_dt">
-        <input type="text" id="tx_main_ds" placeholder="Store/Merchant">
+        <input type="text" id="tx_main_ds" placeholder="Merchant">
         <select id="tx_bk"></select>
         <div id="split-area">
             <div class="split-row">
@@ -53,13 +55,13 @@
             </div>
         </div>
         <button onclick="addSplitRow()" style="width:auto; padding:5px;">+ Add Split</button>
-        <button class="btn-grn" onclick="addTx()">Post to Ledger</button>
+        <button class="btn-grn" onclick="addTx()">Post Transaction</button>
     </div>
 </div>
 
 <div id="p6" class="page">
     <div class="card">
-        <h3>Search & History</h3>
+        <h3>History</h3>
         <input type="text" id="f_search" placeholder="Search..." onkeyup="drLedger()">
         <table>
             <thead><tr><th>Date</th><th>Desc</th><th>Bank</th><th>Amount</th><th>Del</th></tr></thead>
@@ -70,8 +72,8 @@
 
 <div id="p5" class="page">
     <div class="card">
-        <h3 id="g-title">60-Day Forecast</h3>
-        <canvas id="cfGraph" width="800" height="250"></canvas>
+        <h3>60-Day Forecast</h3>
+        <canvas id="cfGraph" width="800" height="250" style="width:100%; background:#fff; border:1px solid #ddd;"></canvas>
     </div>
 </div>
 
@@ -89,43 +91,58 @@
 
 <div id="p3" class="page">
     <div class="card">
-        <h3>Banks</h3>
-        <input type="text" id="bn_n" placeholder="Bank Name"><input type="number" id="bn_i" placeholder="Opening £">
+        <h3>Budget vs Actual (This Month)</h3>
+        <table>
+            <thead><tr><th>Category</th><th>Budget £</th><th>Actual £</th><th>Status</th></tr></thead>
+            <tbody id="out-budget"></tbody>
+        </table>
+    </div>
+    <div class="card">
+        <h3>Manage Categories</h3>
+        <div style="display:flex; gap:5px;">
+            <input type="text" id="cn_n" placeholder="Cat Name">
+            <input type="number" id="cn_b" placeholder="Budget £">
+            <select id="cn_t"><option value="exp">Expense</option><option value="inc">Income</option></select>
+        </div>
+        <button class="btn-grn" onclick="addC()">Save Category</button>
+    </div>
+    <div class="card">
+        <h3>Bank Accounts</h3>
+        <input type="text" id="bn_n" placeholder="Bank Name"><input type="number" id="bn_i" placeholder="Opening Bal">
         <button class="btn-grn" onclick="addB()">Add Bank</button>
         <div id="out-bk-list"></div>
     </div>
+</div>
+
+<div id="p4" class="page">
     <div class="card">
-        <h3>Categories</h3>
-        <input type="text" id="cn_n" placeholder="Name">
-        <select id="cn_t"><option value="exp">Expense</option><option value="inc">Income</option></select>
-        <button class="btn-grn" onclick="addC()">Add Category</button>
-        <table><tbody id="out-cat"></tbody></table>
+        <h3>Bulk CSV Import</h3>
+        <p style="font-size:11px; color:#666;">Format: Date, Description, Category, Bank, Amount (One per line)</p>
+        <textarea id="csv_box" rows="5" placeholder="2026-01-10, Grocery, Food, Lloyds, 50.00"></textarea>
+        <button class="btn-grn" onclick="importCSV()">Run Import</button>
     </div>
     <div class="card">
-        <label>Goal Minimum £</label>
+        <label>Minimum Goal £</label>
         <input type="number" id="set_goal" onchange="db.goal=parseFloat(this.value);sv()">
+        <button onclick="localStorage.clear();location.reload();" style="color:red; margin-top:20px;">Wipe All Data</button>
     </div>
 </div>
 
 <script>
-    var KEY = 'FV_V225_SUM';
+    var KEY = 'FV_V230_FINAL';
     var db = { banks: [], cats: [], recs: [], txs: [], goal: 0 };
     var activeBank = "";
 
-    try {
-        var s = localStorage.getItem(KEY);
-        if(s) db = JSON.parse(s);
-    } catch(e) {}
+    try { var s = localStorage.getItem(KEY); if(s) db = JSON.parse(s); } catch(e) {}
 
     function goTo(id) {
-        var pids = ['p1','p2','p3','p5','p6'];
-        for(var i=0; i<pids.length; i++) { document.getElementById(pids[i]).style.display = 'none'; }
-        document.getElementById(id).style.display = 'block';
+        ['p1','p2','p3','p4','p5','p6'].forEach(function(p){ document.getElementById(p).style.display='none'; });
+        document.getElementById(id).style.display='block';
         if(id === 'p1') drDash();
-        if(id === 'p2') drRecur();
         if(id === 'p3') drAdmin();
         if(id === 'p5') render60Day();
         if(id === 'p6') drLedger();
+        if(id === 'p2') drRecur();
     }
 
     function addSplitRow() {
@@ -137,99 +154,99 @@
 
     function addTx() {
         var m = document.getElementById('tx_main_ds').value, b = document.getElementById('tx_bk').value, dt = document.getElementById('tx_dt').value;
-        var rows = document.querySelectorAll('.split-row');
-        for(var i=0; i<rows.length; i++) {
-            var ds = rows[i].querySelector('.sp-ds').value || m, am = parseFloat(rows[i].querySelector('.sp-am').value), ct = rows[i].querySelector('.sp-ct').value;
+        document.querySelectorAll('.split-row').forEach(function(r){
+            var am = parseFloat(r.querySelector('.sp-am').value), ct = r.querySelector('.sp-ct').value;
             if(!isNaN(am)) {
-                var ty = 'exp';
-                for(var j=0; j<db.cats.length; j++) { if(db.cats[j].n === ct) ty = db.cats[j].t; }
-                db.txs.push({dt:dt, d:ds, a:am, b:b, c:ct, t:ty});
+                var ty = 'exp'; db.cats.forEach(function(c){ if(c.n === ct) ty = c.t; });
+                db.txs.push({dt:dt, d:r.querySelector('.sp-ds').value || m, a:am, b:b, c:ct, t:ty});
             }
-        }
+        });
         sv(); drDash();
     }
 
+    function importCSV() {
+        var lines = document.getElementById('csv_box').value.split('\n');
+        lines.forEach(function(l){
+            var p = l.split(',');
+            if(p.length >= 5) {
+                var ty = 'exp'; db.cats.forEach(function(c){ if(c.n === p[2].trim()) ty = c.t; });
+                db.txs.push({dt:p[0].trim(), d:p[1].trim(), c:p[2].trim(), b:p[3].trim(), a:parseFloat(p[4]), t:ty});
+            }
+        });
+        sv(); alert("Imported!");
+    }
+
+    function addC() { db.cats.push({n:document.getElementById('cn_n').value, b:parseFloat(document.getElementById('cn_b').value)||0, t:document.getElementById('cn_t').value}); sv(); drAdmin(); }
     function addB() { db.banks.push({n:document.getElementById('bn_n').value, init:parseFloat(document.getElementById('bn_i').value)||0}); sv(); drAdmin(); }
-    function addC() { db.cats.push({n:document.getElementById('cn_n').value, t:document.getElementById('cn_t').value}); sv(); drAdmin(); }
     function addR() { db.recs.push({n:document.getElementById('r_n').value, a:parseFloat(document.getElementById('r_a').value), b:document.getElementById('r_bk').value, c:document.getElementById('r_ct').value, dt:document.getElementById('r_dt').value}); sv(); drRecur(); }
     function sv() { localStorage.setItem(KEY, JSON.stringify(db)); }
 
     function drDash() {
-        var h = "", opts = "", inc = 0, exp = 0, now = new Date(), m = now.getMonth(), y = now.getFullYear();
-        db.banks.forEach(function(b) {
+        var h="", opts="", inc=0, exp=0, now=new Date(), m=now.getMonth(), y=now.getFullYear();
+        db.banks.forEach(function(b){
             var bal = b.init;
             db.txs.forEach(function(t){ 
-                if(t.b === b.n) bal += (t.t==='inc'?t.a:-t.a); 
-                var td = new Date(t.dt);
-                if(td.getMonth() === m && td.getFullYear() === y) {
-                    if(t.t === 'inc') inc += t.a; else exp += t.a;
-                }
+                if(t.b===b.n) bal+=(t.t==='inc'?t.a:-t.a);
+                var td=new Date(t.dt); if(td.getMonth()===m && td.getFullYear()===y){ if(t.t==='inc') inc+=t.a; else exp+=t.a; }
             });
-            var s = (activeBank === b.n) ? 'border-color:#2c3e50' : '';
-            h += '<button class="bal-card" style="'+s+'" onclick="activeBank=\''+b.n+'\';drDash()">'+b.n+'<br>£'+bal.toFixed(2)+'</button>';
+            h += '<button class="bal-card" style="'+(activeBank===b.n?'border-color:#2c3e50':'')+'" onclick="activeBank=\''+b.n+'\';drDash()">'+b.n+'<br>£'+bal.toFixed(2)+'</button>';
             opts += '<option value="'+b.n+'">'+b.n+'</option>';
         });
-        document.getElementById('out-bal').innerHTML = h;
-        document.getElementById('tx_bk').innerHTML = opts;
-        document.getElementById('out-sum').innerHTML = '<div class="sum-box" style="background:#27ae60">Income<br>£'+inc.toFixed(2)+'</div><div class="sum-box" style="background:#e74c3c">Spent<br>£'+exp.toFixed(2)+'</div><div class="sum-box" style="background:#3498db">Net<br>£'+(inc-exp).toFixed(2)+'</div>';
+        document.getElementById('out-bal').innerHTML=h; document.getElementById('tx_bk').innerHTML=opts;
+        document.getElementById('out-sum').innerHTML='<div class="sum-box" style="background:#27ae60">Income<br>£'+inc.toFixed(2)+'</div><div class="sum-box" style="background:#e74c3c">Spent<br>£'+exp.toFixed(2)+'</div><div class="sum-box" style="background:#3498db">Net<br>£'+(inc-exp).toFixed(2)+'</div>';
         updateDropdowns();
     }
 
-    function updateDropdowns() {
-        var cO = ""; db.cats.forEach(function(c){ cO += '<option value="'+c.n+'">'+c.n+'</option>'; });
-        document.querySelectorAll('.sp-ct').forEach(function(s){ s.innerHTML = cO; });
-    }
-
-    function drLedger() {
-        var q = document.getElementById('f_search').value.toLowerCase(), h = "";
-        for(var i = db.txs.length-1; i>=0; i--) {
-            var t = db.txs[i];
-            if(!q || t.d.toLowerCase().indexOf(q) > -1) {
-                h += '<tr><td>'+t.dt+'</td><td>'+t.d+'</td><td>'+t.b+'</td><td>£'+t.a.toFixed(2)+'</td><td><button class="btn-red" onclick="db.txs.splice('+i+',1);sv();drLedger()">X</button></td></tr>';
-            }
-        }
-        document.getElementById('out-ledger').innerHTML = h;
-    }
-
     function drAdmin() {
-        var bL = "", cL = "";
+        var bL="", bdH="", m=new Date().getMonth(), y=new Date().getFullYear();
         db.banks.forEach(function(b, i){ bL += '<div>'+b.n+' <button class="btn-red" onclick="db.banks.splice('+i+',1);sv();drAdmin()">Del</button></div>'; });
-        db.cats.forEach(function(c, i){ cL += '<tr><td>'+c.n+'</td><td><button class="btn-red" onclick="db.cats.splice('+i+',1);sv();drAdmin()">Del</button></td></tr>'; });
-        document.getElementById('out-bk-list').innerHTML = bL;
-        document.getElementById('out-cat').innerHTML = cL;
+        db.cats.forEach(function(c, i){
+            var act = 0; db.txs.forEach(function(t){ var td=new Date(t.dt); if(t.c===c.n && td.getMonth()===m && td.getFullYear()===y) act+=t.a; });
+            var perc = Math.min((act/c.b)*100, 100) || 0;
+            bdH += '<tr><td>'+c.n+'</td><td>£'+c.b+'</td><td>£'+act.toFixed(2)+'</td><td><div class="prog-bg"><div class="prog-fill" style="width:'+perc+'%; background:'+(act>c.b?'#e74c3c':'#27ae60')+'"></div></div></td></tr>';
+        });
+        document.getElementById('out-bk-list').innerHTML=bL; document.getElementById('out-budget').innerHTML=bdH;
         document.getElementById('set_goal').value = db.goal;
     }
 
+    function updateDropdowns() {
+        var cO=""; db.cats.forEach(function(c){ cO+='<option value="'+c.n+'">'+c.n+'</option>'; });
+        document.querySelectorAll('.sp-ct').forEach(function(s){ var v=s.value; s.innerHTML=cO; s.value=v; });
+    }
+
+    function drLedger() {
+        var q=document.getElementById('f_search').value.toLowerCase(), h="";
+        for(var i=db.txs.length-1; i>=0; i--){
+            var t=db.txs[i]; if(!q || t.d.toLowerCase().indexOf(q)>-1) h+='<tr><td>'+t.dt+'</td><td>'+t.d+'</td><td>'+t.b+'</td><td>£'+t.a.toFixed(2)+'</td><td><button class="btn-red" onclick="db.txs.splice('+i+',1);sv();drLedger()">X</button></td></tr>';
+        }
+        document.getElementById('out-ledger').innerHTML=h;
+    }
+
     function drRecur() {
-        var h = "", bO = "", cO = "";
-        db.banks.forEach(function(b){ bO += '<option value="'+b.n+'">'+b.n+'</option>'; });
-        db.cats.forEach(function(c){ cO += '<option value="'+c.n+'">'+c.n+'</option>'; });
-        db.recs.forEach(function(r, i){ h += '<tr><td>'+r.dt+'</td><td>'+r.n+'</td><td>£'+r.a+'</td><td><button class="btn-red" onclick="db.recs.splice('+i+',1);sv();drRecur()">X</button></td></tr>'; });
-        document.getElementById('r_bk').innerHTML = bO;
-        document.getElementById('r_ct').innerHTML = cO;
-        document.getElementById('out-rec').innerHTML = h;
+        var bO="", cO="", h="";
+        db.banks.forEach(function(b){ bO+='<option value="'+b.n+'">'+b.n+'</option>'; });
+        db.cats.forEach(function(c){ cO+='<option value="'+c.n+'">'+c.n+'</option>'; });
+        db.recs.forEach(function(r, i){ h+='<tr><td>'+r.dt+'</td><td>'+r.n+'</td><td>£'+r.a+'</td><td><button class="btn-red" onclick="db.recs.splice('+i+',1);sv();drRecur()">X</button></td></tr>'; });
+        document.getElementById('r_bk').innerHTML=bO; document.getElementById('r_ct').innerHTML=cO; document.getElementById('out-rec').innerHTML=h;
     }
 
     function render60Day() {
-        var canvas = document.getElementById('cfGraph'), ctx = canvas.getContext('2d');
-        ctx.clearRect(0,0,canvas.width, canvas.height);
-        if(!activeBank) return;
-        var bObj = db.banks.find(function(x){return x.n === activeBank;});
-        var bal = bObj ? bObj.init : 0;
-        db.txs.forEach(function(t){ if(t.b===activeBank) bal += (t.t==='inc'?t.a:-t.a); });
-        var pts = [], today = new Date();
-        for(var i=0; i<=60; i++) {
-            var dStr = new Date(new Date().setDate(today.getDate()+i)).toISOString().split('T')[0];
+        var canvas=document.getElementById('cfGraph'), ctx=canvas.getContext('2d');
+        ctx.clearRect(0,0,canvas.width, canvas.height); if(!activeBank) return;
+        var bObj=db.banks.find(function(x){return x.n===activeBank;}), bal=bObj?bObj.init:0;
+        db.txs.forEach(function(t){if(t.b===activeBank) bal+=(t.t==='inc'?t.a:-t.a);});
+        var pts=[], today=new Date();
+        for(var i=0;i<=60;i++) {
+            var dStr=new Date(new Date().setDate(today.getDate()+i)).toISOString().split('T')[0];
             db.recs.forEach(function(r){ if(r.b===activeBank && r.dt===dStr){ var ty='exp'; db.cats.forEach(function(c){if(c.n===r.c)ty=c.t;}); bal+=(ty==='inc'?r.a:-r.a); } });
             pts.push(bal);
         }
-        var max = Math.max.apply(Math, pts.concat([db.goal+100])), min = Math.min.apply(Math, pts.concat([db.goal-100])), range = max-min;
+        var max=Math.max.apply(Math, pts.concat([db.goal+100])), min=Math.min.apply(Math, pts.concat([db.goal-100])), range=max-min;
         function getY(v){ return canvas.height-((v-min)/range)*(canvas.height-40)-20; }
         ctx.beginPath(); ctx.setLineDash([5,5]); ctx.strokeStyle='#e74c3c'; ctx.moveTo(0,getY(db.goal)); ctx.lineTo(canvas.width,getY(db.goal)); ctx.stroke();
         ctx.setLineDash([]); ctx.beginPath(); ctx.strokeStyle='#3498db'; ctx.lineWidth=4;
         pts.forEach(function(p,ix){ var x=(ix/60)*canvas.width, y=getY(p); if(ix===0)ctx.moveTo(x,y); else ctx.lineTo(x,y); }); ctx.stroke();
     }
-
     window.onload = function() { document.getElementById('tx_dt').valueAsDate = new Date(); drDash(); };
 </script>
 </body>
